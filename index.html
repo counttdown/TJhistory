@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>승수쌤과 함께하는 역사 퀴즈</title>
+<style>
+    /* 기본 및 초기화 */
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    body { font-family: 'Pretendard', 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e6e9f0 0%, #eef1f5 100%); color: #333; }
+    .container { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #ffffff; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .screen { display: none; padding: 30px 25px; text-align: center; box-sizing: border-box; height: 100vh; overflow-y: auto; }
+    .screen.active { display: block; }
+    #splash.active { display: flex; }
+
+    /* 게임 스탯 (하트 & 별) */
+    #gameStats { position: absolute; top: 20px; left: 20px; font-size: 18px; font-weight: bold; display: none; align-items: center; gap: 8px; z-index: 50; }
+    .stars-text { color: #f1c40f; display: flex; align-items: center; gap: 4px; }
+
+    /* 정답/오답 및 게임 오버 피드백 배너 */
+    .feedback-banner, #restartBanner { position: fixed; left: 50%; transform: translateX(-50%) translateY(-30px); border-radius: 30px; font-weight: 800; z-index: 1000; opacity: 0; transition: all 0.3s ease; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); white-space: nowrap; }
+    .feedback-banner { top: 20px; padding: 12px 25px; font-size: 16px; }
+    .feedback-banner.correct { background-color: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
+    .feedback-banner.incorrect { background-color: #ffebee; color: #c62828; border: 2px solid #ffcdd2; }
+    #restartBanner { top: 30px; padding: 20px 40px; font-size: 22px; background-color: #e74c3c; color: white; z-index: 2000; transition: all 0.4s ease; }
+    #restartBanner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* 상단 네비게이션 바 */
+    #topNav { position: absolute; top: 15px; right: 15px; display: none; gap: 10px; z-index: 50; }
+    .icon-btn { font-size: 20px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .icon-btn:hover { background: #e2e6ea; transform: translateY(-2px); }
+
+    /* 스플래시 및 홈 화면 */
+    #splash { flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #a28ad0, #7388d9); color: white; cursor: pointer; }
+    .splash-title { font-size: 32px; font-weight: 800; line-height: 1.4; margin-bottom: 10px; }
+    .splash-eng { font-size: 18px; font-weight: 300; opacity: 0.9; margin-bottom: 40px; letter-spacing: 1px; }
+    .splash-guide { font-size: 15px; font-weight: 500; padding: 10px 20px; background: rgba(255,255,255,0.2); border-radius: 20px; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    .home-header { margin-top: 50px; margin-bottom: 30px; }
+    .home-header h1 { font-size: 28px; font-weight: 800; color: #2c3e50; line-height: 1.4; margin: 0; }
+    .quiz-title { color: #a28ad0; } 
+    .subtitle { font-size: 14px; color: #7f8c8d; margin-top: 10px; font-weight: 500; }
+    .quiz-card { background: #f8f9fa; border-radius: 16px; padding: 25px 20px; margin-bottom: 25px; border: 1px solid #eaeaea; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+    .quiz-card h2 { margin: 0 0 8px 0; font-size: 22px; color: #333; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .q-count { font-size: 15px; color: #a28ad0; font-weight: 700; background: #f4effc; display: inline-block; padding: 6px 14px; border-radius: 12px; }
+
+    /* 버튼 및 입력 폼 */
+    input[type="text"], input[type="number"], input[type="password"] { width: 100%; padding: 15px; margin: 8px 0; font-size: 16px; border: 1.5px solid #ddd; border-radius: 10px; box-sizing: border-box; outline: none; transition: 0.3s; font-family: inherit; }
+    input:focus { border-color: #a28ad0; box-shadow: 0 0 0 3px rgba(162,138,208,0.1); }
+    .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #a28ad0, #8096e0); color: white; border: none; border-radius: 10px; cursor: pointer; margin-top: 15px; transition: 0.3s; box-shadow: 0 4px 6px rgba(162,138,208,0.2); font-family: inherit; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(162,138,208,0.3); }
+    .teacher-link { display: inline-block; margin-top: 20px; font-size: 14px; color: #7f8c8d; text-decoration: underline; cursor: pointer; font-weight: 500; }
+    .small-text { font-size: 13px; color: #888; margin-top: 10px; line-height: 1.5; word-break: keep-all; }
+
+    /* 퀴즈 화면 */
+    #quiz-container { text-align: left; margin-top: 50px; }
+    .status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 15px; margin-bottom: 20px; color: #666; font-weight: 700; background: #f1f3f5; padding: 10px 15px; border-radius: 10px; }
+    #scoreDisplay { font-size: 18px; font-weight: 900; color: #000000; } 
+    .combo-text { color: #e91e63; font-weight: 900; font-size: 24px; display: inline-block; } 
+    @keyframes bounceShake { 0% { transform: scale(1) translateY(0); } 20% { transform: scale(1.2) translateY(-8px) rotate(-4deg); } 40% { transform: scale(1.2) translateY(0) rotate(4deg); } 60% { transform: scale(1.2) translateY(-4px) rotate(-4deg); } 80% { transform: scale(1.2) translateY(0) rotate(4deg); } 100% { transform: scale(1) translateY(0) rotate(0); } }
+    .question { font-size: 20px; font-weight: 700; margin-bottom: 25px; line-height: 1.5; color: #2c3e50; word-break: keep-all; }
+    .option { display: block; width: 100%; padding: 16px; margin-bottom: 12px; font-size: 16px; background-color: #fff; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; text-align: left; transition: 0.2s; font-weight: 500; font-family: inherit; }
+    .option:hover { border-color: #a28ad0; background-color: #fbf9ff; }
+    .ox-container { display: flex; justify-content: space-between; gap: 10px; }
+    .ox-option { flex: 1; text-align: center; font-size: 40px; font-weight: 900; padding: 25px 0; }
+    .short-input-container { margin-top: 10px; }
+
+    /* 리뷰 화면 */
+    .review-header { margin-top: 30px; margin-bottom: 20px; }
+    .review-summary { font-size: 16px; font-weight: 700; background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #333; }
+    .review-list { list-style: none; padding: 0; margin: 0; }
+    .review-item { padding: 15px; margin-bottom: 12px; border-radius: 10px; cursor: pointer; text-align: left; transition: 0.2s; border: 1px solid #ddd; }
+    .review-item.correct { background-color: #e8f5e9; border-color: #c8e6c9; }
+    .review-item.incorrect { background-color: #ffebee; border-color: #ffcdd2; }
+    .review-item:hover { transform: scale(1.02); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+    .review-q { font-weight: 700; color: #333; margin-bottom: 6px; line-height: 1.4; word-break: keep-all; font-size: 15px;}
+    .review-a { font-weight: 500; color: #555; font-size: 14px; }
+    .review-guide { font-size: 13px; color: #a28ad0; font-weight: bold; margin-bottom: 15px; }
+
+    /* 팝업 모달 */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
+    .modal-content { background-color: #fff; padding: 30px 25px; border-radius: 15px; max-width: 85%; width: 350px; position: relative; text-align: left; line-height: 1.6; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .close-btn { position: absolute; top: 15px; right: 20px; font-size: 26px; font-weight: bold; cursor: pointer; color: #888; transition: 0.2s; }
+    .close-btn:hover { color: #e74c3c; }
+    .modal-title { font-size: 18px; font-weight: 800; color: #a28ad0; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px; }
+
+    /* 랭킹 화면 */
+    .rank-header { margin-top: 30px; font-size: 24px; font-weight: 800; color: #2c3e50; margin-bottom: 20px; }
+    .rank-section { margin-top: 20px; text-align: left; background: #fff; border-radius: 12px; border: 1px solid #eaeaea; overflow: hidden; }
+    .rank-title { font-size: 16px; background: #f8f9fa; padding: 12px 15px; color: #a28ad0; font-weight: 700; border-bottom: 1px solid #eaeaea; }
+    .rank-list { list-style: none; padding: 0; margin: 0; font-size: 15px; }
+    .rank-item { display: flex; justify-content: space-between; padding: 14px 15px; border-bottom: 1px solid #f1f3f5; font-weight: 500; align-items: center;}
+    .rank-item:last-child { border-bottom: none; }
+    .rank-item.me { font-weight: 800; color: #d32f2f; background-color: #fff5f5; }
+    .medal { font-size: 18px; margin-right: 5px; }
+    .home-back-btn { background: #7f8c8d; box-shadow: none; margin-top: 30px; }
+    .home-back-btn:hover { background: #95a5a6; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 정답/오답 및 재시작 피드백 배너 -->
+    <div id="feedbackBanner" class="feedback-banner"></div>
+    <div id="restartBanner">처음부터 다시 풀어보세요! 🔄</div>
+
+    <!-- 게임 스탯 -->
+    <div id="gameStats">
+        <span id="heartsDisplay">❤️❤️❤️❤️❤️</span>
+        <span class="stars-text"><span id="starsDisplay">⭐ 0</span></span>
+    </div>
+
+    <!-- 네비게이션 (스피커 버튼 삭제됨) -->
+    <div id="topNav">
+        <button class="icon-btn" onclick="goHome()" title="홈으로">🏠</button>
+        <button class="icon-btn" onclick="goToRanking()" title="랭킹 보기">🏆</button>
+    </div>
+
+    <!-- 화면 1. 스플래시 -->
+    <div id="splash" class="screen active" onclick="startApp()">
+        <div class="splash-title">승수쌤과 함께하는<br>역사 퀴즈</div>
+        <div class="splash-eng">History Quiz</div>
+        <div class="splash-guide">👆 아무 곳이나 누르면 넘어갑니다</div>
+    </div>
+
+    <!-- 화면 2. 홈 -->
+    <div id="home" class="screen">
+        <div class="home-header">
+            <h1>승수쌤과 함께하는<br><span class="quiz-title">역사 퀴즈</span></h1>
+            <p class="subtitle">가볍게 한 문제씩 풀며 공부해봅시다.</p>
+        </div>
+        <div class="quiz-card">
+            <h2>역사 퀴즈 🔒</h2>
+            <div class="q-count">총 24문제</div>
+        </div>
+        <input type="password" id="entryCode" placeholder="입장 코드 입력 (4자리)">
+        <button class="btn" onclick="checkEntryCode()">들어가기</button>
+        <div>
+            <span class="teacher-link" onclick="promptTeacher()">선생님이신가요?</span>
+        </div>
+    </div>
+
+    <!-- 화면 3. 정보 입력 -->
+    <div id="userInfo" class="screen">
+        <div class="home-header">
+            <h1 style="font-size: 24px;">학생 정보 입력 📝</h1>
+        </div>
+        <p style="margin-bottom: 20px; color: #555;">본인의 학번과 이름을 입력해주세요.</p>
+        <input type="number" id="studentId" placeholder="학번 예시: 30102">
+        <input type="text" id="studentName" placeholder="이름 입력">
+        <p class="small-text">※ 랭킹을 위해 학번, 이름, 점수만 기록돼요.<br>그 밖의 정보는 기록하지 않습니다.</p>
+        <button class="btn" onclick="startQuiz()">퀴즈 시작하기</button>
+    </div>
+
+    <!-- 화면 4. 퀴즈 -->
+    <div id="quiz" class="screen">
+        <div id="quiz-container">
+            <div class="status-bar">
+                <span id="progress">문제 1 / 24</span>
+                <span id="scoreDisplay">점수: 0</span>
+            </div>
+            <div style="text-align: right; margin-top: -15px; margin-bottom: 15px; height: 30px;">
+                <span id="comboDisplay" class="combo-text"></span>
+            </div>
+            <div id="questionText" class="question">질문이 여기에 표시됩니다.</div>
+            <div id="optionsContainer"></div>
+        </div>
+    </div>
+
+    <!-- 화면 5. 리뷰 -->
+    <div id="review" class="screen">
+        <div class="home-header review-header">
+            <h1 style="font-size: 24px;">퀴즈 결과 리뷰 📝</h1>
+        </div>
+        <div class="review-summary">
+            남은 하트: <span id="finalHeartsDisplay"></span><br>
+            획득한 별: <span id="finalStarsDisplay" style="color: #f1c40f;"></span><br>
+            <span style="font-size: 14px; font-weight: normal; color: #7f8c8d; margin-top: 5px; display: block;">풀이 소요 시간: <span id="finalTimeDisplay"></span></span>
+        </div>
+        <div class="review-guide">👇 문제를 누르면 교과서 해설이 나옵니다!</div>
+        <ul id="reviewList" class="review-list"></ul>
+        <button class="btn" onclick="showScreen('ranking'); renderRanking();">랭킹 보러가기</button>
+    </div>
+
+    <!-- 화면 6. 랭킹 -->
+    <div id="ranking" class="screen">
+        <div class="rank-header">🏆 명예의 전당 🏆</div>
+        <div class="rank-section">
+            <div class="rank-title">🌍 전체 랭킹</div>
+            <ul id="overallRank" class="rank-list"></ul>
+        </div>
+        <div class="rank-section">
+            <div class="rank-title">🏫 학급별 랭킹 (평균 점수)</div>
+            <ul id="classRank" class="rank-list"></ul>
+        </div>
+        <div class="rank-section">
+            <div class="rank-title">👤 우리 학급 내 랭킹</div>
+            <ul id="myClassRank" class="rank-list"></ul>
+        </div>
+        <button class="btn home-back-btn" onclick="goHome()">처음으로 돌아가기</button>
+    </div>
+
+    <!-- 모달창 -->
+    <div id="explanationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3 class="modal-title">📖 교과서 해설</h3>
+            <p id="explanationText" style="margin:0; font-size: 15px; color:#444; word-break: keep-all;"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 24문항 데이터
+    const originalQuizData = [
+        { type: 'ox', question: "몽골의 내정 간섭 시기, 고려는 국가 체제와 풍속을 완전히 상실하였다.", options: ["O", "X"], answer: 1, explanation: "몽골의 내정 간섭 시기에도 고려는 국가 체제와 고유한 풍속을 유지하였습니다." },
+        { type: 'mcq', question: "몽골이 일본 원정을 위해 설치하였으나 이후 고려의 내정을 간섭하는 데 활용한 기구는?", options: ["정동행성", "교정도감", "도병마사", "식목도감"], answer: 0, explanation: "정동행성은 본래 일본 원정을 위해 설치되었으나, 원정이 실패한 이후에도 남아 고려의 내정을 간섭하는 데 활용되었습니다." },
+        { type: 'short', question: "원의 영향력을 배경으로 성장하여 막강한 권력과 대토지를 보유했던 고려 후기 지배 세력은?", answer: ["권문세족", "권문 세족"], explanation: "원 간섭기에 친원 세력 등을 바탕으로 새롭게 지배 세력으로 성장한 이들을 권문세족이라고 부릅니다." },
+        { type: 'mcq', question: "원은 고려의 북방 지역과 제주도 등을 직접 지배하였다. 다음 중 몽골(원)이 설치한 지배 기구와 그 위치가 바르게 연결되지 않은 것은?", options: ["북방 지역 - 쌍성총관부", "북방 지역 - 동녕부", "제주도 - 탐라총관부", "서경 - 정동행성"], answer: 3, explanation: "동녕부는 서경(평양) 지역에 설치된 지배 기구입니다. 정동행성은 개경에 설치된 내정 간섭 기구입니다." },
+        { type: 'mcq', question: "공민왕의 개혁 정책으로 옳지 않은 것은?", options: ["쌍성총관부 수복", "정동행성 유명무실화(정동행성 이문소 폐지)", "신돈 등용과 성균관 개편", "친원 세력 양성"], answer: 3, explanation: "공민왕은 기철 등 친원 세력을 숙청하고 자주성을 회복하기 위한 개혁 정책을 펼쳤습니다." },
+        { type: 'short', question: "공민왕 때 권문세족이 불법으로 빼앗은 토지와 노비를 본래대로 되돌리기 위해 신돈을 책임자로 세워 설치한 임시 기구는?", answer: ["전민변정도감", "전민 변정도감"], explanation: "공민왕은 승려 신돈을 등용하여 전민변정도감을 설치하고, 권문세족의 불법적인 경제 기반을 약화시켰습니다." },
+        { type: 'ox', question: "신진 사대부는 주로 성리학을 바탕으로 고려의 낡은 사회 모순을 개혁하고자 하였다.", options: ["O", "X"], answer: 0, explanation: "고려 말 새롭게 성장한 신진 사대부는 성리학을 학문적 바탕으로 삼아 불교의 폐단과 권문세족의 횡포를 비판했습니다." },
+        { type: 'mcq', question: "다음 역사적 사건들을 일어난 순서대로 바르게 나열한 것은?<br>[가. 위화도 회군 / 나. 공민왕의 개혁 / 다. 신진 사대부의 성장]", options: ["가 - 나 - 다", "나 - 다 - 가", "다 - 가 - 나", "다 - 나 - 가"], answer: 1, explanation: "공민왕의 개혁 정치 이후 신진 사대부가 본격적으로 성장하였고, 이들이 이성계와 손잡고 위화도 회군을 통해 정권을 장악하게 됩니다." },
+        { type: 'mcq', question: "고려 시대 신분 제도에 대한 설명으로 옳은 것은?", options: ["철저한 폐쇄적 골품제 사회였다.", "법적으로 크게 양인과 천인으로 구별되었다.", "향·부곡·소의 주민은 일반 양민과 동등한 대우를 받았다.", "노비는 과거를 통해 관직에 오를 수 있었다."], answer: 1, explanation: "고려 시대 신분 제도는 법적으로 크게 양인과 천인으로 나뉘는 양천제 사회였습니다." },
+        { type: 'ox', question: "고려 시대에는 아들이 없는 경우 반드시 양자를 들여 제사를 지내야만 했다.", options: ["O", "X"], answer: 1, explanation: "고려 시대에는 아들이 없더라도 반드시 양자를 들이지 않았으며, 딸이나 외손자가 제사를 지내는 경우도 많았습니다." },
+        { type: 'short', question: "고려 시대 양인 중 특정한 직역을 부담하지 않고 주로 농업에 종사하던 일반 농민을 일컫는 말은?", answer: ["백정"], explanation: "고려 시대의 백정은 국가로부터 특정한 직역(의무)을 받지 않고 농업에 종사하던 일반 평민을 뜻합니다." },
+        { type: 'mcq', question: "고려 시대 가족 제도의 특징으로 옳지 않은 것은?", options: ["여성의 재가가 비교적 자유로웠다.", "아들과 딸을 차별하지 않고 재산을 균분 상속하였다.", "혼인하면 남자가 여자 집(처가)으로 들어가는 경우가 많았다.", "철저한 장남 중심의 부계 가족 제도였다."], answer: 3, explanation: "철저한 장남 중심의 부계 가족 제도는 유교 윤리가 깊이 뿌리내린 조선 후기에 나타나는 현상입니다. 고려 시대에는 남녀의 차별이 비교적 적었습니다." },
+        { type: 'short', question: "고려 후기 충렬왕 때 안향이 처음 소개하였으며, 인간의 심성과 우주의 이치를 탐구하는 새로운 유학 사상은?", answer: ["성리학"], explanation: "성리학은 고려 후기 충렬왕 때 안향이 원나라로부터 처음 들여와 소개하였습니다." },
+        { type: 'mcq', question: "고려 시대 불교계에 대한 설명으로 바르게 짝지어진 것은?", options: ["의천 - 천태종 개창", "지눌 - 화엄종 개창", "원효 - 왕오천축국전 저술", "혜초 - 수선사 결사 제창"], answer: 0, explanation: "의천은 교종을 중심으로 선종을 통합하고자 해동 천태종을 개창하였습니다." },
+        { type: 'ox', question: "현재 전해지는 금속 활자 인쇄본 중 세계에서 가장 오래된 것은 고려의 『직지심체요절』이다.", options: ["O", "X"], answer: 0, explanation: "고려 우왕 때 청주 흥덕사에서 간행된 『직지심체요절』(직지)은 세계에서 가장 오래된 금속 활자본으로 유네스코 세계 기록 유산입니다." },
+        { type: 'short', question: "고려 후기 화약 무기 제조 기술을 습득하여 진포 해전에서 왜구를 격파하는 데 큰 공을 세운 인물은?", answer: ["최무선"], explanation: "최무선은 원나라 상인에게 화약 제조 기술을 배워 화통도감 설치를 건의하였고, 진포 대첩에서 화포를 사용하여 왜구를 크게 무찔렀습니다." },
+        { type: 'mcq', question: "조선 건국 과정을 순서대로 바르게 나열한 것은?<br>[가. 위화도 회군 / 나. 조선 건국 / 다. 과전법 실시 / 라. 한양 천도]", options: ["가 - 다 - 나 - 라", "가 - 나 - 다 - 라", "다 - 가 - 나 - 라", "라 - 가 - 다 - 나"], answer: 0, explanation: "이성계 일파는 위화도 회군(1388)으로 권력을 장악하고, 과전법(1391)을 실시하여 경제적 기반을 다진 뒤 조선을 건국(1392)하고 한양으로 천도(1394)하였습니다." },
+        { type: 'mcq', question: "조선을 건국한 주도 정치 세력은?", options: ["신진 사대부와 신흥 무신 세력", "문벌 귀족과 지방 호족", "권문세족과 불교 세력", "무신 정권 세력"], answer: 0, explanation: "조선은 고려 말 성장한 신진 사대부 세력과 이성계를 비롯한 신흥 무신 세력이 연합하여 건국하였습니다." },
+        { type: 'ox', question: "정도전은 성리학을 통치 이념으로 삼아 국왕이 모든 권력을 독점하는 정치를 강조하였다.", options: ["O", "X"], answer: 1, explanation: "정도전은 훌륭한 재상이 정치를 주도해야 한다는 '재상 중심의 정치'를 강조하였으며 국왕의 권력 독점에 반대했습니다." },
+        { type: 'short', question: "이성계가 우왕의 명으로 요동을 정벌하러 가던 중 군대를 돌려 정권을 장악한 역사적 사건은?", answer: ["위화도회군", "위화도 회군"], explanation: "이성계는 명의 철령위 설치 요구에 반발하여 요동 정벌을 떠났다가, 4불가론을 내세우며 압록강 위화도에서 회군하여 실권을 장악했습니다." },
+        { type: 'mcq', question: "조선 초기 왕들의 업적으로 옳지 않은 것은?", options: ["태종 - 6조 중심 정치 제도, 호패법 실시", "세종 - 집현전 확대 개편, 왕권과 신권의 조화", "세조 - 집현전 폐지, 의정부 권한 강화", "성종 - 홍문관 설치, 경국대전 완성"], answer: 2, explanation: "세조는 왕권을 강화하기 위해 의정부의 권한을 대폭 축소하고, 왕이 직접 6조를 통솔하는 '6조 직계제(6조 중심 정치 제도)'를 실시하였습니다." },
+        { type: 'short', question: "세조 때 편찬하기 시작하여 성종 때 완성 및 반포된 조선의 기본 통치 법전은?", answer: ["경국대전"], explanation: "『경국대전』은 조선의 정치, 경제, 사회 전반을 아우르는 최고 기본 법전으로 성종 때 완성되었습니다." },
+        { type: 'ox', question: "조선 시대에는 관리를 선발할 때 문과만 실시하고 무과는 실시하지 않았다.", options: ["O", "X"], answer: 1, explanation: "조선은 고려와 달리 문관을 뽑는 문과뿐만 아니라, 무관을 선발하는 무과도 정기적으로 실시하여 양반 관료 체제를 확립했습니다." },
+        { type: 'mcq', question: "조선의 중앙 정치 기구 중 '3사'의 역할이 바르게 연결된 것은?", options: ["사헌부 - 국왕의 비서 역할", "사간원 - 관리의 비리 감찰", "홍문관 - 궁중의 학문 연구 및 국왕 자문", "승정원 - 언론 활동 담당"], answer: 2, explanation: "홍문관은 집현전을 계승하여 학문 연구와 왕의 자문을 맡았습니다. 사헌부는 관리 감찰, 사간원은 왕에게 간언하는 언론 기구였습니다." }
+    ];
+
+    let activeQuizData = []; 
+    let rankingsDB = []; 
+    let userAnswers = [];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let currentCombo = 0;
+    let currentUser = null;
+    
+    let hearts = 5;
+    let stars = 0;
+    let startTime; 
+
+    function startApp() {
+        goHome();
+    }
+
+    function goHome() {
+        document.getElementById('entryCode').value = '';
+        showScreen('home');
+    }
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        
+        const topNav = document.getElementById('topNav');
+        const gameStats = document.getElementById('gameStats');
+        
+        if (screenId === 'splash') {
+            topNav.style.display = 'none';
+            gameStats.style.display = 'none';
+        } else if (screenId === 'quiz') {
+            topNav.style.display = 'flex';
+            gameStats.style.display = 'flex';
+        } else {
+            topNav.style.display = 'flex';
+            gameStats.style.display = 'none';
+        }
+    }
+
+    window.onload = () => {
+        document.getElementById('topNav').style.display = 'none';
+    };
+
+    function checkEntryCode() {
+        const code = document.getElementById('entryCode').value;
+        if (code === "1110") {
+            showScreen('userInfo');
+        } else if (code === "1129") {
+            startQuizAsTeacher();
+        } else {
+            alert("입장 코드가 올바르지 않습니다.");
+        }
+    }
+
+    function promptTeacher() {
+        const code = prompt("선생님 전용 코드를 입력해주세요.");
+        if (code === "1129") {
+            startQuizAsTeacher();
+        } else if (code) {
+            alert("코드가 올바르지 않습니다.");
+        }
+    }
+
+    function startQuizAsTeacher() {
+        currentUser = { studentId: "Teacher", name: "승수쌤", score: 0, stars: 0, classNum: "T" };
+        initQuiz();
+    }
+
+    function goToRanking() {
+        renderRanking();
+        showScreen('ranking');
+    }
+
+    function startQuiz() {
+        const sid = document.getElementById('studentId').value.trim();
+        const sname = document.getElementById('studentName').value.trim();
+        if(sid.length < 5 || sname.length === 0) {
+            alert("올바른 학번(예: 30102)과 이름을 입력해주세요.");
+            return;
+        }
+
+        currentUser = { studentId: sid, name: sname, score: 0, stars: 0, classNum: sid.substring(0, 3) };
+        initQuiz();
+    }
+
+    function updateStatsUI() {
+        document.getElementById('heartsDisplay').innerText = '❤️'.repeat(hearts) + '🤍'.repeat(5 - hearts);
+        document.getElementById('starsDisplay').innerText = `⭐ ${stars}`;
+    }
+
+    function initQuiz() {
+        activeQuizData = [...originalQuizData].sort(() => Math.random() - 0.5);
+        currentQuestionIndex = 0;
+        score = 0;
+        currentCombo = 0;
+        hearts = 5;
+        stars = 0;
+        userAnswers = [];
+        startTime = new Date();
+        
+        updateStatsUI();
+        showScreen('quiz');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const qData = activeQuizData[currentQuestionIndex];
+        let qTypeLabel = "";
+        if (qData.type === 'ox') qTypeLabel = "[OX 퀴즈] ";
+        if (qData.type === 'short') qTypeLabel = "[단답형] ";
+        if (qData.question.includes('순서')) qTypeLabel = "[순서 맞추기] ";
+
+        document.getElementById('questionText').innerHTML = `<span style="color:#a28ad0; font-size:14px;">${qTypeLabel}</span><br>Q${currentQuestionIndex + 1}. ${qData.question}`;
+        document.getElementById('progress').innerText = `문제 ${currentQuestionIndex + 1} / ${activeQuizData.length}`;
+        document.getElementById('scoreDisplay').innerText = `점수: ${score}`;
+        
+        const comboEl = document.getElementById('comboDisplay');
+        if(currentCombo >= 2) {
+            comboEl.innerText = `${currentCombo} COMBO! 🔥`;
+            comboEl.style.animation = 'none';
+            void comboEl.offsetWidth; 
+            comboEl.style.animation = 'bounceShake 0.6s ease-in-out'; 
+        } else {
+            comboEl.innerText = "";
+        }
+
+        const optionsContainer = document.getElementById('optionsContainer');
+        optionsContainer.innerHTML = '';
+
+        if (qData.type === 'mcq' || qData.type === 'ox') {
+            const isOx = qData.type === 'ox';
+            optionsContainer.className = isOx ? "ox-container" : "";
+
+            qData.options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = isOx ? 'option ox-option' : 'option';
+                btn.innerHTML = option;
+                btn.onclick = () => checkMultipleChoice(index, qData);
+                optionsContainer.appendChild(btn);
+            });
+        } else if (qData.type === 'short') {
+            optionsContainer.className = "short-input-container";
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = 'shortAnswerInput';
+            input.placeholder = '정답을 입력하세요';
+            input.autocomplete = 'off';
+
+            const submitBtn = document.createElement('button');
+            submitBtn.className = 'btn';
+            submitBtn.innerText = '정답 확인';
+            submitBtn.onclick = () => checkShortAnswer(qData);
+
+            input.addEventListener('keyup', (e) => {
+                if(e.key === 'Enter') submitBtn.click();
+            });
+
+            optionsContainer.appendChild(input);
+            optionsContainer.appendChild(submitBtn);
+            setTimeout(() => input.focus(), 100);
+        }
+    }
+
+    function checkMultipleChoice(selectedIndex, qData) {
+        const isCorrect = (selectedIndex === qData.answer);
+        processResult(isCorrect, qData.options[qData.answer], qData);
+    }
+
+    function checkShortAnswer(qData) {
+        const inputVal = document.getElementById('shortAnswerInput').value.trim().replace(/\s+/g, '');
+        if(!inputVal) { alert("정답을 입력해주세요."); return; }
+        
+        const correctAnswers = Array.isArray(qData.answer) ? qData.answer : [qData.answer];
+        const isCorrect = correctAnswers.some(ans => ans.replace(/\s+/g, '') === inputVal);
+        processResult(isCorrect, correctAnswers, qData); 
+    }
+
+    function processResult(isCorrect, correctAnswerText, qData) {
+        const feedbackBanner = document.getElementById('feedbackBanner');
+        
+        userAnswers.push({
+            question: qData.question,
+            isCorrect: isCorrect,
+            correctAnswerText: correctAnswerText,
+            explanation: qData.explanation
+        });
+
+        if (isCorrect) {
+            currentCombo++;
+            score += 100 + ((currentCombo - 1) * 20);
+            stars++;
+            feedbackBanner.innerText = "정답입니다! 👏";
+            feedbackBanner.className = "feedback-banner correct";
+        } else {
+            currentCombo = 0;
+            hearts = Math.max(0, hearts - 1);
+            feedbackBanner.innerText = `오답입니다! (정답: ${correctAnswerText})`;
+            feedbackBanner.className = "feedback-banner incorrect";
+        }
+        
+        updateStatsUI();
+        feedbackBanner.style.opacity = '1';
+        feedbackBanner.style.transform = 'translateX(-50%) translateY(0)';
+        
+        setTimeout(() => {
+            feedbackBanner.style.opacity = '0';
+            feedbackBanner.style.transform = 'translateX(-50%) translateY(-20px)';
+        }, 1500);
+
+        if (hearts === 0) {
+            document.getElementById('optionsContainer').innerHTML = ''; 
+            setTimeout(() => {
+                const restartBanner = document.getElementById('restartBanner');
+                restartBanner.classList.add('show');
+                setTimeout(() => {
+                    restartBanner.classList.remove('show');
+                    initQuiz(); 
+                }, 2000);
+            }, 1500); 
+            return; 
+        }
+
+        currentQuestionIndex++;
+        if (currentQuestionIndex < activeQuizData.length) {
+            setTimeout(loadQuestion, 100); 
+        } else {
+            setTimeout(endQuiz, 1500);
+        }
+    }
+
+    // 구글 시트로 데이터 전송 (앱스 스크립트 연결 시 작동)
+    function sendToGoogleSheet(user) {
+        const scriptUrl = '여기에_구글_앱스_스크립트_URL_입력'; 
+        if (scriptUrl === '여기에_구글_앱스_스크립트_URL_입력' || user.classNum === "T") return;
+
+        const payload = {
+            studentId: user.studentId,
+            name: user.name,
+            time: user.time,
+            score: user.score
+        };
+
+        fetch(scriptUrl, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        }).catch(err => console.error('전송 실패:', err));
+    }
+
+    function endQuiz() {
+        let endTime = new Date();
+        let diffSec = Math.floor((endTime - startTime) / 1000);
+        let min = Math.floor(diffSec / 60);
+        let sec = diffSec % 60;
+        let timeString = min > 0 ? `${min}분 ${sec}초` : `${sec}초`;
+
+        if(currentUser) {
+            currentUser.score = score;
+            currentUser.stars = stars;
+            currentUser.time = timeString;
+            
+            if(currentUser.classNum !== "T") {
+                rankingsDB.push({...currentUser});
+                sendToGoogleSheet(currentUser);
+            }
+        }
+        
+        document.getElementById('finalTimeDisplay').innerText = timeString;
+        renderReview();
+        showScreen('review');
+    }
+
+    function renderReview() {
+        document.getElementById('finalHeartsDisplay').innerText = '❤️'.repeat(hearts) + '🤍'.repeat(5 - hearts);
+        document.getElementById('finalStarsDisplay').innerText = `⭐ ${stars}`;
+        
+        const reviewList = document.getElementById('reviewList');
+        reviewList.innerHTML = '';
+        userAnswers.forEach((ans, index) => {
+            const item = document.createElement('li');
+            item.className = `review-item ${ans.isCorrect ? 'correct' : 'incorrect'}`;
+            item.innerHTML = `<div class="review-q">Q${index + 1}. ${ans.question.replace('<br>', ' ')}</div><div class="review-a">정답: ${ans.correctAnswerText}</div>`;
+            item.onclick = () => showModal(ans.explanation);
+            reviewList.appendChild(item);
+        });
+    }
+
+    function showModal(explanation) {
+        document.getElementById('explanationText').innerText = explanation;
+        document.getElementById('explanationModal').style.display = 'flex';
+    }
+    
+    function closeModal() {
+        document.getElementById('explanationModal').style.display = 'none';
+    }
+    
+    window.onclick = function(event) {
+        const modal = document.getElementById('explanationModal');
+        if (event.target == modal) { modal.style.display = "none"; }
+    }
+
+    function getMedalDisplay(index) {
+        if (index === 0) return '<span class="medal">🥇</span> 1위';
+        if (index === 1) return '<span class="medal">🥈</span> 2위';
+        if (index === 2) return '<span class="medal">🥉</span> 3위';
+        return `${index + 1}위`;
+    }
+
+    function renderRanking() {
+        const overallUl = document.getElementById('overallRank');
+        const classUl = document.getElementById('classRank');
+        const myClassUl = document.getElementById('myClassRank');
+        
+        overallUl.innerHTML = '';
+        classUl.innerHTML = '';
+        myClassUl.innerHTML = '';
+
+        let highestScoresObj = {};
+        rankingsDB.filter(u => u.classNum !== "T").forEach(user => {
+            if (!highestScoresObj[user.studentId] || highestScoresObj[user.studentId].score < user.score) {
+                highestScoresObj[user.studentId] = user;
+            }
+        });
+
+        let sortedAll = Object.values(highestScoresObj).sort((a, b) => b.score - a.score);
+        
+        sortedAll.forEach((user, index) => {
+            let li = document.createElement('li');
+            li.className = 'rank-item' + (currentUser && user.studentId === currentUser.studentId ? ' me' : '');
+            li.innerHTML = `<span>${getMedalDisplay(index)}. ${user.name} (${user.studentId})</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
+            overallUl.appendChild(li);
+        });
+
+        if(sortedAll.length === 0) overallUl.innerHTML = `<li class="rank-item" style="justify-content:center; color:#888;">아직 참여자가 없습니다.</li>`;
+
+        let classScores = {};
+        let classCounts = {};
+        sortedAll.forEach(user => {
+            if(!classScores[user.classNum]) {
+                classScores[user.classNum] = 0; classCounts[user.classNum] = 0;
+            }
+            classScores[user.classNum] += user.score;
+            classCounts[user.classNum]++;
+        });
+
+        let classAverages = Object.keys(classScores).map(cls => ({
+            classNum: cls, avg: Math.round(classScores[cls] / classCounts[cls])
+        })).sort((a, b) => b.avg - a.avg);
+
+        classAverages.forEach((clsData, index) => {
+            let li = document.createElement('li');
+            li.className = 'rank-item' + (currentUser && clsData.classNum === currentUser.classNum ? ' me' : '');
+            li.innerHTML = `<span>${getMedalDisplay(index)}. ${clsData.classNum}반</span> <span>평균 ${clsData.avg}점</span>`;
+            classUl.appendChild(li);
+        });
+        
+        if(classAverages.length === 0) classUl.innerHTML = `<li class="rank-item" style="justify-content:center; color:#888;">아직 데이터가 없습니다.</li>`;
+
+        if (currentUser && currentUser.classNum !== "T") {
+            let myClassUsers = sortedAll.filter(user => user.classNum === currentUser.classNum).sort((a, b) => b.score - a.score);
+            myClassUsers.forEach((user, index) => {
+                let li = document.createElement('li');
+                li.className = 'rank-item' + (user.studentId === currentUser.studentId ? ' me' : '');
+                li.innerHTML = `<span>${getMedalDisplay(index)}. ${user.name}</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
+                myClassUl.appendChild(li);
+            });
+        } else {
+            myClassUl.innerHTML = `<li class="rank-item" style="justify-content:center; color:#888;">퀴즈를 진행한 본인 학급만 표시됩니다.</li>`;
+        }
+    }
+</script>
+</body>
+</html>
