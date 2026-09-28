@@ -7,94 +7,138 @@
 <style>
     /* 기본 및 초기화 */
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    body { font-family: 'Pretendard', 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #e6e9f0 0%, #eef1f5 100%); color: #333; }
-    .container { max-width: 480px; margin: 0 auto; min-height: 100vh; background: #ffffff; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-    .screen { display: none; padding: 30px 25px; text-align: center; box-sizing: border-box; height: 100vh; overflow-y: auto; }
+    body { font-family: 'Pretendard', 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background: #ffffff; color: #333; overflow-x: hidden; }
+    
+    /* 꽉 차는 레이아웃 컨테이너 */
+    .container { width: 100%; min-height: 100vh; position: relative; overflow-x: hidden; }
+    
+    /* 각 화면 공통 */
+    .screen { display: none; width: 100%; min-height: 100vh; box-sizing: border-box; overflow-y: auto; }
     .screen.active { display: block; }
-    #splash.active { display: flex; }
+    
+    /* 내부 콘텐츠 정렬 래퍼 (PC에서 너무 넓어지지 않게) */
+    .content-wrap { max-width: 900px; margin: 0 auto; padding: 80px 25px 50px; box-sizing: border-box; width: 100%; text-align: left; }
+    .center-wrap { max-width: 600px; margin: 0 auto; padding: 80px 25px 50px; box-sizing: border-box; width: 100%; text-align: left; }
 
-    /* 게임 스탯 (하트 & 별) */
-    #gameStats { position: absolute; top: 20px; left: 20px; font-size: 18px; font-weight: bold; display: none; align-items: center; gap: 8px; z-index: 50; }
+    /* 화면 1. 스플래시 화면 (전체 화면 꽉 채움) */
+    #splash.active { display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #a28ad0, #7388d9); color: white; cursor: pointer; height: 100vh; }
+    .splash-title { font-size: 38px; font-weight: 800; line-height: 1.4; margin-bottom: 10px; text-align: center; }
+    .splash-eng { font-size: 20px; font-weight: 300; opacity: 0.9; margin-bottom: 40px; letter-spacing: 1px; }
+    .splash-guide { font-size: 16px; font-weight: 500; padding: 12px 24px; background: rgba(255,255,255,0.2); border-radius: 30px; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+    /* 명언 화면 (화면 1-2) */
+    #quoteScreen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f4f6f9; padding: 20px;}
+
+    /* 고정 UI (상단 네비게이션 & 스탯) */
+    #gameStats { position: fixed; top: 20px; left: 20px; font-size: 18px; font-weight: bold; display: none; align-items: center; gap: 8px; z-index: 500; background: rgba(255,255,255,0.8); padding: 8px 15px; border-radius: 20px; backdrop-filter: blur(5px); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     .stars-text { color: #f1c40f; display: flex; align-items: center; gap: 4px; }
+    #topNav { position: fixed; top: 20px; right: 20px; display: none; gap: 8px; z-index: 500; align-items: center; }
+    .icon-btn { font-size: 18px; background: #fff; border: 1px solid #ddd; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .icon-btn:hover { background: #f1f3f5; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .text-btn { font-family: inherit; font-size: 14px; font-weight: 700; border-radius: 20px; width: auto; padding: 0 16px; color: #555; letter-spacing: -0.5px; }
 
-    /* 정답/오답 및 게임 오버 피드백 배너 */
-    .feedback-banner, #restartBanner { position: fixed; left: 50%; transform: translateX(-50%) translateY(-30px); border-radius: 30px; font-weight: 800; z-index: 1000; opacity: 0; transition: all 0.3s ease; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.1); white-space: nowrap; }
-    .feedback-banner { top: 20px; padding: 12px 25px; font-size: 16px; }
+    /* 정답/오답 배너 */
+    .feedback-banner, #restartBanner { position: fixed; left: 50%; transform: translateX(-50%) translateY(-30px); border-radius: 30px; font-weight: 800; z-index: 2000; opacity: 0; transition: all 0.3s ease; pointer-events: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); white-space: nowrap; }
+    .feedback-banner { top: 20px; padding: 14px 30px; font-size: 16px; }
     .feedback-banner.correct { background-color: #d4edda; color: #155724; border: 2px solid #c3e6cb; }
     .feedback-banner.incorrect { background-color: #ffebee; color: #c62828; border: 2px solid #ffcdd2; }
-    #restartBanner { top: 30px; padding: 20px 40px; font-size: 22px; background-color: #e74c3c; color: white; z-index: 2000; transition: all 0.4s ease; }
+    #restartBanner { top: 40px; padding: 20px 40px; font-size: 22px; background-color: #e74c3c; color: white; z-index: 3000; transition: all 0.4s ease; }
     #restartBanner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* 상단 네비게이션 바 */
-    #topNav { position: absolute; top: 15px; right: 15px; display: none; gap: 10px; z-index: 50; }
-    .icon-btn { font-size: 20px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .icon-btn:hover { background: #e2e6ea; transform: translateY(-2px); }
+    /* 용정쌤 스타일 홈 화면 레이아웃 */
+    .home-wrap { display: flex; flex-direction: column; justify-content: center; min-height: 85vh; padding-top: 100px;}
+    .home-badge { display: inline-block; background: #f0ebff; color: #735bf2; padding: 8px 18px; border-radius: 20px; font-weight: 800; font-size: 14px; margin-bottom: 25px; letter-spacing: 0.5px; }
+    .main-title { font-size: 52px; font-weight: 900; color: #1e1e1e; line-height: 1.25; margin: 0 0 15px 0; letter-spacing: -1.5px; }
+    .main-title .highlight { color: #735bf2; }
+    .main-subtitle { font-size: 19px; color: #7f8c8d; margin: 0 0 60px 0; font-weight: 500; word-break: keep-all; }
+    
+    .home-action-section { max-width: 420px; }
+    .quiz-start-card { background: #fff; border: 1px solid #eaeaea; border-radius: 20px; padding: 30px 25px; box-shadow: 0 12px 30px rgba(0,0,0,0.03); margin-bottom: 30px; display: flex; gap: 20px; align-items: flex-start; }
+    .quiz-start-card .card-icon { font-size: 38px; }
+    .quiz-start-card h2 { margin: 0 0 10px 0; font-size: 22px; font-weight: 800; color: #2c3e50; letter-spacing: -0.5px; }
+    .quiz-start-card p { margin: 0; font-size: 15px; color: #7f8c8d; line-height: 1.5; font-weight: 500;}
 
-    /* 스플래시 및 홈 화면 */
-    #splash { flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #a28ad0, #7388d9); color: white; cursor: pointer; }
-    .splash-title { font-size: 32px; font-weight: 800; line-height: 1.4; margin-bottom: 10px; }
-    .splash-eng { font-size: 18px; font-weight: 300; opacity: 0.9; margin-bottom: 40px; letter-spacing: 1px; }
-    .splash-guide { font-size: 15px; font-weight: 500; padding: 10px 20px; background: rgba(255,255,255,0.2); border-radius: 20px; animation: blink 1.5s infinite; }
-    @keyframes blink { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-    .home-header { margin-top: 50px; margin-bottom: 30px; }
-    .home-header h1 { font-size: 28px; font-weight: 800; color: #2c3e50; line-height: 1.4; margin: 0; }
-    .quiz-title { color: #a28ad0; } 
-    .subtitle { font-size: 14px; color: #7f8c8d; margin-top: 10px; font-weight: 500; }
-    .quiz-card { background: #f8f9fa; border-radius: 16px; padding: 25px 20px; margin-bottom: 25px; border: 1px solid #eaeaea; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-    .quiz-card h2 { margin: 0 0 8px 0; font-size: 22px; color: #333; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .q-count { font-size: 15px; color: #a28ad0; font-weight: 700; background: #f4effc; display: inline-block; padding: 6px 14px; border-radius: 12px; }
-
-    /* 버튼 및 입력 폼 */
-    input[type="text"], input[type="number"], input[type="password"] { width: 100%; padding: 15px; margin: 8px 0; font-size: 16px; border: 1.5px solid #ddd; border-radius: 10px; box-sizing: border-box; outline: none; transition: 0.3s; font-family: inherit; }
-    input:focus { border-color: #a28ad0; box-shadow: 0 0 0 3px rgba(162,138,208,0.1); }
-    .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #a28ad0, #8096e0); color: white; border: none; border-radius: 10px; cursor: pointer; margin-top: 15px; transition: 0.3s; box-shadow: 0 4px 6px rgba(162,138,208,0.2); font-family: inherit; }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(162,138,208,0.3); }
-    .teacher-link { display: inline-block; margin-top: 20px; font-size: 14px; color: #7f8c8d; text-decoration: underline; cursor: pointer; font-weight: 500; }
-    .small-text { font-size: 13px; color: #888; margin-top: 10px; line-height: 1.5; word-break: keep-all; }
+    /* 입력 폼 및 버튼 */
+    .entry-form input[type="text"], .entry-form input[type="number"], .entry-form input[type="password"] { width: 100%; padding: 18px; margin: 0 0 15px 0; font-size: 16px; border: 1.5px solid #e0e0e0; border-radius: 14px; box-sizing: border-box; outline: none; transition: 0.3s; font-family: inherit; background: #fcfcfc;}
+    .entry-form input:focus { border-color: #735bf2; background: #fff; box-shadow: 0 0 0 4px rgba(115,91,242,0.1); }
+    .btn { width: 100%; padding: 18px; font-size: 18px; font-weight: bold; background: linear-gradient(135deg, #a28ad0, #7388d9); color: white; border: none; border-radius: 14px; cursor: pointer; transition: 0.3s; box-shadow: 0 6px 15px rgba(162,138,208,0.2); font-family: inherit; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(162,138,208,0.3); }
+    .teacher-link { display: inline-block; margin-top: 25px; font-size: 14px; color: #95a5a6; text-decoration: underline; cursor: pointer; font-weight: 500; }
+    
+    /* 일반 인풋 (정보입력용) */
+    .center-wrap input { width: 100%; padding: 16px; margin: 8px 0 15px; font-size: 16px; border: 1.5px solid #ddd; border-radius: 12px; box-sizing: border-box; outline: none; transition: 0.3s; font-family: inherit; }
+    .center-wrap input:focus { border-color: #a28ad0; box-shadow: 0 0 0 3px rgba(162,138,208,0.1); }
+    .small-text { font-size: 13.5px; color: #888; margin-top: 10px; margin-bottom: 25px; line-height: 1.6; word-break: keep-all; }
 
     /* 퀴즈 화면 */
-    #quiz-container { text-align: left; margin-top: 50px; }
-    .status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 15px; margin-bottom: 20px; color: #666; font-weight: 700; background: #f1f3f5; padding: 10px 15px; border-radius: 10px; }
-    #scoreDisplay { font-size: 18px; font-weight: 900; color: #000000; } 
+    .status-bar { display: flex; justify-content: space-between; align-items: center; font-size: 15px; margin-bottom: 25px; color: #666; font-weight: 700; background: #f8f9fa; padding: 12px 20px; border-radius: 12px; border: 1px solid #eee; }
+    #scoreDisplay { font-size: 18px; font-weight: 900; color: #1e1e1e; } 
     .combo-text { color: #e91e63; font-weight: 900; font-size: 24px; display: inline-block; } 
     @keyframes bounceShake { 0% { transform: scale(1) translateY(0); } 20% { transform: scale(1.2) translateY(-8px) rotate(-4deg); } 40% { transform: scale(1.2) translateY(0) rotate(4deg); } 60% { transform: scale(1.2) translateY(-4px) rotate(-4deg); } 80% { transform: scale(1.2) translateY(0) rotate(4deg); } 100% { transform: scale(1) translateY(0) rotate(0); } }
-    .question { font-size: 20px; font-weight: 700; margin-bottom: 25px; line-height: 1.5; color: #2c3e50; word-break: keep-all; }
-    .option { display: block; width: 100%; padding: 16px; margin-bottom: 12px; font-size: 16px; background-color: #fff; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; text-align: left; transition: 0.2s; font-weight: 500; font-family: inherit; }
-    .option:hover { border-color: #a28ad0; background-color: #fbf9ff; }
-    .ox-container { display: flex; justify-content: space-between; gap: 10px; }
-    .ox-option { flex: 1; text-align: center; font-size: 40px; font-weight: 900; padding: 25px 0; }
-    .short-input-container { margin-top: 10px; }
+    .question { font-size: 22px; font-weight: 800; margin-bottom: 30px; line-height: 1.5; color: #2c3e50; word-break: keep-all; }
+    .option { display: block; width: 100%; padding: 18px; margin-bottom: 12px; font-size: 16.5px; background-color: #fff; border: 2px solid #e9ecef; border-radius: 14px; cursor: pointer; text-align: left; transition: 0.2s; font-weight: 600; font-family: inherit; color: #444; }
+    .option:hover { border-color: #a28ad0; background-color: #fbf9ff; transform: translateX(5px); }
+    .ox-container { display: flex; justify-content: space-between; gap: 15px; }
+    .ox-option { flex: 1; text-align: center; font-size: 45px; font-weight: 900; padding: 35px 0; }
+    .ox-option:hover { transform: translateY(-5px); }
 
-    /* 리뷰 화면 */
-    .review-header { margin-top: 30px; margin-bottom: 20px; }
-    .review-summary { font-size: 16px; font-weight: 700; background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #333; }
+    /* 리뷰 및 랭킹 화면 */
+    .review-header, .rank-header { margin-top: 10px; margin-bottom: 25px; font-size: 28px; font-weight: 800; color: #2c3e50; }
+    .review-summary { font-size: 16.5px; font-weight: 700; background: #f8f9fa; padding: 20px; border-radius: 15px; margin-bottom: 25px; color: #333; border: 1px solid #eee; }
     .review-list { list-style: none; padding: 0; margin: 0; }
-    .review-item { padding: 15px; margin-bottom: 12px; border-radius: 10px; cursor: pointer; text-align: left; transition: 0.2s; border: 1px solid #ddd; }
-    .review-item.correct { background-color: #e8f5e9; border-color: #c8e6c9; }
-    .review-item.incorrect { background-color: #ffebee; border-color: #ffcdd2; }
-    .review-item:hover { transform: scale(1.02); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
-    .review-q { font-weight: 700; color: #333; margin-bottom: 6px; line-height: 1.4; word-break: keep-all; font-size: 15px;}
-    .review-a { font-weight: 500; color: #555; font-size: 14px; }
-    .review-guide { font-size: 13px; color: #a28ad0; font-weight: bold; margin-bottom: 15px; }
+    .review-item { padding: 18px; margin-bottom: 15px; border-radius: 12px; cursor: pointer; text-align: left; transition: 0.2s; border: 1px solid #ddd; }
+    .review-item.correct { background-color: #f1fbf4; border-color: #c8e6c9; }
+    .review-item.incorrect { background-color: #fff5f5; border-color: #ffcdd2; }
+    .review-item:hover { transform: scale(1.02); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .review-q { font-weight: 700; color: #2c3e50; margin-bottom: 8px; line-height: 1.4; word-break: keep-all; font-size: 16px;}
+    .review-a { font-weight: 500; color: #555; font-size: 14.5px; }
+    .review-guide { font-size: 14px; color: #a28ad0; font-weight: bold; margin-bottom: 15px; display: inline-block; background: #f4effc; padding: 6px 14px; border-radius: 15px; }
 
-    /* 팝업 모달 */
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
-    .modal-content { background-color: #fff; padding: 30px 25px; border-radius: 15px; max-width: 85%; width: 350px; position: relative; text-align: left; line-height: 1.6; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-    .close-btn { position: absolute; top: 15px; right: 20px; font-size: 26px; font-weight: bold; cursor: pointer; color: #888; transition: 0.2s; }
-    .close-btn:hover { color: #e74c3c; }
-    .modal-title { font-size: 18px; font-weight: 800; color: #a28ad0; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 10px; }
-
-    /* 랭킹 화면 */
-    .rank-header { margin-top: 30px; font-size: 24px; font-weight: 800; color: #2c3e50; margin-bottom: 20px; }
-    .rank-section { margin-top: 20px; text-align: left; background: #fff; border-radius: 12px; border: 1px solid #eaeaea; overflow: hidden; }
-    .rank-title { font-size: 16px; background: #f8f9fa; padding: 12px 15px; color: #a28ad0; font-weight: 700; border-bottom: 1px solid #eaeaea; }
-    .rank-list { list-style: none; padding: 0; margin: 0; font-size: 15px; }
-    .rank-item { display: flex; justify-content: space-between; padding: 14px 15px; border-bottom: 1px solid #f1f3f5; font-weight: 500; align-items: center;}
+    .rank-section { margin-top: 25px; text-align: left; background: #fff; border-radius: 15px; border: 1px solid #eaeaea; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.02); }
+    .rank-title { font-size: 16.5px; background: #f8f9fa; padding: 15px 20px; color: #735bf2; font-weight: 800; border-bottom: 1px solid #eaeaea; }
+    .rank-list { list-style: none; padding: 0; margin: 0; font-size: 15.5px; }
+    .rank-item { display: flex; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #f1f3f5; font-weight: 500; align-items: center;}
     .rank-item:last-child { border-bottom: none; }
     .rank-item.me { font-weight: 800; color: #d32f2f; background-color: #fff5f5; }
-    .medal { font-size: 18px; margin-right: 5px; }
-    .home-back-btn { background: #7f8c8d; box-shadow: none; margin-top: 30px; }
+    .medal { font-size: 20px; margin-right: 6px; }
+    .home-back-btn { background: #7f8c8d; box-shadow: none; margin-top: 40px; }
     .home-back-btn:hover { background: #95a5a6; }
+
+    /* 모달 공통 */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+    .modal-content { background-color: #fff; padding: 35px 30px; border-radius: 20px; max-width: 90%; width: 400px; position: relative; text-align: left; line-height: 1.6; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+    .close-btn { position: absolute; top: 15px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa; transition: 0.2s; }
+    .close-btn:hover { color: #e74c3c; }
+    .modal-title { font-size: 19px; font-weight: 800; color: #a28ad0; margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #f1f3f5; padding-bottom: 12px; }
+
+    /* 명언 UI 컴포넌트 */
+    .quote-card-ui { background: #fff; border-radius: 24px; padding: 40px 35px; text-align: left; box-shadow: 0 12px 30px rgba(0,0,0,0.06); position: relative; max-width: 650px; width: 100%; box-sizing: border-box; }
+    .quote-badge { display: inline-block; background: #f0ebff; color: #735bf2; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 800; margin-bottom: 25px; letter-spacing: -0.5px; }
+    .quote-text { font-size: 26px; font-weight: 800; color: #1e1e1e; line-height: 1.5; margin-bottom: 12px; word-break: keep-all; letter-spacing: -0.5px; }
+    .quote-original { font-size: 16px; color: #7f8c8d; font-weight: 500; }
+    
+    .quote-meta-box { margin-top: 35px; border-left: 3px solid #735bf2; padding-left: 15px; }
+    .quote-author { font-size: 18px; font-weight: 800; color: #2c3e50; margin-bottom: 5px; }
+    .quote-source { font-size: 15px; color: #7f8c8d; }
+    .quote-note { font-size: 14.5px; color: #95a5a6; margin-top: 8px; word-break: keep-all; }
+    
+    .quote-actions { display: flex; justify-content: space-between; margin-top: 40px; gap: 12px; border-top: 1px solid #f1f3f5; padding-top: 25px; }
+    .q-btn { flex: 1; padding: 15px 0; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; border: none; font-family: inherit; }
+    .q-btn-outline { background: #fff; border: 1.5px solid #e0e0e0; color: #555; }
+    .q-btn-outline:hover { background: #f8f9fa; border-color: #ccc; }
+    .q-btn-primary { background: #735bf2; color: #fff; box-shadow: 0 4px 12px rgba(115, 91, 242, 0.25); }
+    .q-btn-primary:hover { background: #5f48d9; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(115, 91, 242, 0.35); }
+
+    /* 반응형 처리 (모바일 폰 화면용) */
+    @media (max-width: 600px) {
+        .main-title { font-size: 38px; }
+        .main-subtitle { font-size: 16px; margin-bottom: 40px; }
+        .content-wrap, .center-wrap { padding: 60px 20px 40px; }
+        .home-wrap { padding-top: 60px; min-height: 70vh; }
+        .quote-card-ui { padding: 30px 20px; }
+        .quote-text { font-size: 22px; }
+    }
 </style>
 </head>
 <body>
@@ -110,10 +154,11 @@
         <span class="stars-text"><span id="starsDisplay">⭐ 0</span></span>
     </div>
 
-    <!-- 네비게이션 (스피커 버튼 삭제됨) -->
+    <!-- 상단 네비게이션 (홈, 랭킹, 명언) -->
     <div id="topNav">
         <button class="icon-btn" onclick="goHome()" title="홈으로">🏠</button>
         <button class="icon-btn" onclick="goToRanking()" title="랭킹 보기">🏆</button>
+        <button class="icon-btn text-btn" id="quoteNavBtn" onclick="openQuoteModal()" title="오늘의 명언">💬 명언</button>
     </div>
 
     <!-- 화면 1. 스플래시 -->
@@ -123,38 +168,69 @@
         <div class="splash-guide">👆 아무 곳이나 누르면 넘어갑니다</div>
     </div>
 
-    <!-- 화면 2. 홈 -->
+    <!-- 화면 1-2. 오늘의 명언 (전체 화면) -->
+    <div id="quoteScreen" class="screen">
+        <div class="quote-card-ui">
+            <div class="quote-badge">오늘의 한 문장</div>
+            <div class="quote-text" id="qs-text"></div>
+            <div class="quote-original" id="qs-original"></div>
+            
+            <div class="quote-meta-box">
+                <div class="quote-author" id="qs-author"></div>
+                <div class="quote-source" id="qs-source"></div>
+                <div class="quote-note" id="qs-note"></div>
+            </div>
+            
+            <div class="quote-actions">
+                <button class="q-btn q-btn-outline" onclick="renderRandomQuote('screen')">다른 문장</button>
+                <button class="q-btn q-btn-primary" onclick="goHome()">들어가기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 화면 2. 홈 (용정쌤 레이아웃 적용) -->
     <div id="home" class="screen">
-        <div class="home-header">
-            <h1>승수쌤과 함께하는<br><span class="quiz-title">역사 퀴즈</span></h1>
-            <p class="subtitle">가볍게 한 문제씩 풀며 공부해봅시다.</p>
-        </div>
-        <div class="quiz-card">
-            <h2>역사 퀴즈 🔒</h2>
-            <div class="q-count">총 24문제</div>
-        </div>
-        <input type="password" id="entryCode" placeholder="입장 코드 입력 (4자리)">
-        <button class="btn" onclick="checkEntryCode()">들어가기</button>
-        <div>
-            <span class="teacher-link" onclick="promptTeacher()">선생님이신가요?</span>
+        <div class="content-wrap home-wrap">
+            <div class="home-title-section">
+                <div class="home-badge">즐거운 역사 수업</div>
+                <h1 class="main-title">승수쌤과 함께하는<br><span class="highlight">역사 퀴즈</span></h1>
+                <p class="main-subtitle">가볍게 한 문제씩 풀며 공부해봅시다.</p>
+            </div>
+
+            <div class="home-action-section entry-form">
+                <div class="quiz-start-card">
+                    <div class="card-icon">🎮</div>
+                    <div>
+                        <h2>역사 퀴즈 게임</h2>
+                        <p>총 24문제</p>
+                    </div>
+                </div>
+                
+                <input type="password" id="entryCode" placeholder="입장 코드 입력 (4자리)">
+                <button class="btn" onclick="checkEntryCode()">들어가기</button>
+                
+                <div style="text-align: left;">
+                    <span class="teacher-link" onclick="promptTeacher()">선생님이신가요?</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- 화면 3. 정보 입력 -->
     <div id="userInfo" class="screen">
-        <div class="home-header">
-            <h1 style="font-size: 24px;">학생 정보 입력 📝</h1>
+        <div class="center-wrap">
+            <h1 class="rank-header" style="margin-top:0;">학생 정보 입력 📝</h1>
+            <p style="margin-bottom: 25px; color: #555; font-size: 16px;">본인의 학번과 이름을 입력해주세요.</p>
+            <input type="number" id="studentId" placeholder="학번 예시: 30102">
+            <input type="text" id="studentName" placeholder="이름 입력">
+            <p class="small-text">※ 랭킹을 위해 학번, 이름, 점수만 기록돼요.<br>그 밖의 정보는 기록하지 않습니다.</p>
+            <button class="btn" onclick="startQuiz()">퀴즈 시작하기</button>
         </div>
-        <p style="margin-bottom: 20px; color: #555;">본인의 학번과 이름을 입력해주세요.</p>
-        <input type="number" id="studentId" placeholder="학번 예시: 30102">
-        <input type="text" id="studentName" placeholder="이름 입력">
-        <p class="small-text">※ 랭킹을 위해 학번, 이름, 점수만 기록돼요.<br>그 밖의 정보는 기록하지 않습니다.</p>
-        <button class="btn" onclick="startQuiz()">퀴즈 시작하기</button>
     </div>
 
     <!-- 화면 4. 퀴즈 -->
     <div id="quiz" class="screen">
-        <div id="quiz-container">
+        <div class="center-wrap" style="padding-top: 90px;">
             <div class="status-bar">
                 <span id="progress">문제 1 / 24</span>
                 <span id="scoreDisplay">점수: 0</span>
@@ -169,49 +245,311 @@
 
     <!-- 화면 5. 리뷰 -->
     <div id="review" class="screen">
-        <div class="home-header review-header">
-            <h1 style="font-size: 24px;">퀴즈 결과 리뷰 📝</h1>
+        <div class="center-wrap">
+            <h1 class="review-header">퀴즈 결과 리뷰 📝</h1>
+            <div class="review-summary">
+                남은 하트: <span id="finalHeartsDisplay"></span><br>
+                획득한 별: <span id="finalStarsDisplay" style="color: #f1c40f;"></span><br>
+                <span style="font-size: 14px; font-weight: normal; color: #7f8c8d; margin-top: 8px; display: block;">풀이 소요 시간: <span id="finalTimeDisplay"></span></span>
+            </div>
+            <div class="review-guide">👇 문제를 누르면 교과서 해설이 나옵니다!</div>
+            <ul id="reviewList" class="review-list"></ul>
+            <button class="btn" style="margin-top: 30px;" onclick="showScreen('ranking'); renderRanking();">랭킹 보러가기</button>
         </div>
-        <div class="review-summary">
-            남은 하트: <span id="finalHeartsDisplay"></span><br>
-            획득한 별: <span id="finalStarsDisplay" style="color: #f1c40f;"></span><br>
-            <span style="font-size: 14px; font-weight: normal; color: #7f8c8d; margin-top: 5px; display: block;">풀이 소요 시간: <span id="finalTimeDisplay"></span></span>
-        </div>
-        <div class="review-guide">👇 문제를 누르면 교과서 해설이 나옵니다!</div>
-        <ul id="reviewList" class="review-list"></ul>
-        <button class="btn" onclick="showScreen('ranking'); renderRanking();">랭킹 보러가기</button>
     </div>
 
     <!-- 화면 6. 랭킹 -->
     <div id="ranking" class="screen">
-        <div class="rank-header">🏆 명예의 전당 🏆</div>
-        <div class="rank-section">
-            <div class="rank-title">🌍 전체 랭킹</div>
-            <ul id="overallRank" class="rank-list"></ul>
+        <div class="center-wrap">
+            <div class="rank-header">🏆 명예의 전당 🏆</div>
+            <div class="rank-section">
+                <div class="rank-title">🌍 전체 랭킹</div>
+                <ul id="overallRank" class="rank-list"></ul>
+            </div>
+            <div class="rank-section">
+                <div class="rank-title">🏫 학급별 랭킹 (평균 점수)</div>
+                <ul id="classRank" class="rank-list"></ul>
+            </div>
+            <div class="rank-section">
+                <div class="rank-title">👤 우리 학급 내 랭킹</div>
+                <ul id="myClassRank" class="rank-list"></ul>
+            </div>
+            <button class="btn home-back-btn" onclick="goHome()">처음으로 돌아가기</button>
         </div>
-        <div class="rank-section">
-            <div class="rank-title">🏫 학급별 랭킹 (평균 점수)</div>
-            <ul id="classRank" class="rank-list"></ul>
-        </div>
-        <div class="rank-section">
-            <div class="rank-title">👤 우리 학급 내 랭킹</div>
-            <ul id="myClassRank" class="rank-list"></ul>
-        </div>
-        <button class="btn home-back-btn" onclick="goHome()">처음으로 돌아가기</button>
     </div>
 
-    <!-- 모달창 -->
+    <!-- 해설 모달창 -->
     <div id="explanationModal" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <span class="close-btn" onclick="closeModal('explanationModal')">&times;</span>
             <h3 class="modal-title">📖 교과서 해설</h3>
             <p id="explanationText" style="margin:0; font-size: 15px; color:#444; word-break: keep-all;"></p>
         </div>
     </div>
+
+    <!-- 명언 팝업 모달창 -->
+    <div id="quoteModal" class="modal">
+        <div class="modal-content" style="padding: 40px 35px; border-radius: 24px;">
+            <span class="close-btn" onclick="closeModal('quoteModal')">&times;</span>
+            <div class="quote-badge" style="background:#f0ebff;">오늘의 한 문장</div>
+            <div class="quote-text" id="qm-text" style="font-size: 24px;"></div>
+            <div class="quote-original" id="qm-original"></div>
+            
+            <div class="quote-meta-box">
+                <div class="quote-author" id="qm-author"></div>
+                <div class="quote-source" id="qm-source"></div>
+                <div class="quote-note" id="qm-note"></div>
+            </div>
+            
+            <div class="quote-actions" style="margin-top: 30px;">
+                <button class="q-btn q-btn-outline" style="flex: none; width: 100%;" onclick="renderRandomQuote('modal')">다른 문장 보기</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
-    // 24문항 데이터
+    // ----------------------------------------------------
+    // [명언 데이터베이스 - 제공된 187개 풀버전 (전체 포함)]
+    // ----------------------------------------------------
+    const quotesDB = [
+        { text: "하루라도 책을 읽지 않으면 입 안에 가시가 돋는다.", author: "안중근", original: "一日不讀書 口中生荊棘", source: "뤼순 감옥에서 쓴 유묵, 1910", note: "보물로 지정되어 전한다." },
+        { text: "이익을 보거든 의로움을 생각하고, 위태로움을 보거든 목숨을 바쳐라.", author: "안중근", original: "見利思義 見危授命", source: "뤼순 감옥에서 쓴 유묵, 1910", note: "『논어』 헌문편의 구절을 옮겨 썼다." },
+        { text: "남이 한 번에 해내면 나는 백 번을 하고, 남이 열 번에 해내면 나는 천 번을 한다.", author: "『중용』", original: "人一能之 己百之 人十能之 己千之", source: "『중용』 20장", note: "재능이 아니라 되풀이가 사람을 바꾼다는 말이다." },
+        { text: "산을 쌓다가 한 삼태기가 모자라 그만두었더라도, 그것은 내가 그만둔 것이다.", author: "공자", original: "譬如爲山 未成一簣 止 吾止也", source: "『논어』 자한편", note: "거의 다 왔을 때 멈추는 것도 내 선택이라는 뜻이다." },
+        { text: "배우고 때때로 익히면 또한 기쁘지 아니한가.", author: "공자", original: "學而時習之 不亦說乎", source: "『논어』 학이편", note: "" },
+        { text: "배우기만 하고 생각하지 않으면 얻는 것이 없고, 생각만 하고 배우지 않으면 위태롭다.", author: "공자", original: "學而不思則罔 思而不學則殆", source: "『논어』 위정편", note: "" },
+        { text: "사람이 멀리 내다보지 않으면 반드시 가까운 근심이 생긴다.", author: "공자", original: "人無遠慮 必有近憂", source: "『논어』 위령공편", note: "" },
+        { text: "하늘이 장차 큰 임무를 어떤 사람에게 내리려 할 때에는, 반드시 먼저 그 마음과 뜻을 괴롭게 하고 근육과 뼈를 지치게 하며 몸을 굶주리게 한다.", author: "맹자", original: "天將降大任於是人也 必先苦其心志 勞其筋骨 餓其體膚", source: "『맹자』 고자 하편", note: "지금의 고생이 무엇을 위한 것인지 묻는 대목이다." },
+        { text: "새기다가 그만두면 썩은 나무도 꺾지 못하지만, 새기기를 그치지 않으면 쇠와 돌에도 무늬를 새길 수 있다.", author: "순자", original: "鍥而舍之 朽木不折 鍥而不舍 金石可鏤", source: "『순자』 권학편", note: "" },
+        { text: "처음 배우는 사람은 먼저 뜻을 세워야 한다.", author: "이이", original: "初學先須立志", source: "『격몽요결』 입지장, 1577", note: "" },
+        { text: "폐족(廢族)이 잘 처신하는 길은 오직 독서 한 가지뿐이다.", author: "정약용", original: "", source: "유배지에서 두 아들에게 보낸 편지", note: "집안이 무너진 처지에서 아들들에게 거듭 당부한 말이다." },
+        { text: "죽고자 하면 살 것이요, 살고자 하면 죽을 것이다.", author: "이순신", original: "必死則生 必生則死", source: "『난중일기』 1597년 9월 15일, 명량 해전 하루 전", note: "" },
+        { text: "신에게는 아직 열두 척의 배가 남아 있사옵니다.", author: "이순신", original: "今臣戰船 尙有十二", source: "1597년 조정에 올린 장계, 『이충무공전서』", note: "수군을 없애라는 명을 받고 올린 글이다." },
+        { text: "어린 백성이 이르고자 하는 바가 있어도 마침내 제 뜻을 펴지 못하는 사람이 많다. 내가 이를 딱하게 여겨 새로 스물여덟 자를 만든다.", author: "세종", original: "", source: "「훈민정음」 서문, 1446", note: "" },
+        { text: "오직 한없이 가지고 싶은 것은 높은 문화의 힘이다.", author: "김구", original: "", source: "『백범일지』 「나의 소원」", note: "" },
+        { text: "역사란 무엇이뇨. 인류 사회의 ‘아(我)’와 ‘비아(非我)’의 투쟁이 시간부터 발전하며 공간부터 확대하는 심적 활동의 상태의 기록이니라.", author: "신채호", original: "", source: "『조선상고사』 총론, 1931", note: "" },
+        { text: "지난 일을 경계하여 뒷날의 근심을 삼가려 한다.", author: "유성룡", original: "懲毖", source: "『징비록』 서문, 1604년 무렵", note: "‘징비’라는 제목은 『시경』에서 따왔다." },
+        { text: "사람은 누구나 한 번 죽지만, 어떤 죽음은 태산보다 무겁고 어떤 죽음은 기러기 털보다 가볍다.", author: "사마천", original: "人固有一死 或重於泰山 或輕於鴻毛", source: "「보임안서(報任安書)」", note: "궁형을 받고도 『사기』를 끝내 완성한 까닭을 밝힌 편지다." },
+        { text: "역사란 역사가와 사실 사이의 끊임없는 상호 작용의 과정이며, 현재와 과거 사이의 그치지 않는 대화이다.", author: "E. H. 카", original: "", source: "『역사란 무엇인가』, 1961", note: "" },
+        { text: "인간들의 행적이 시간이 흘러 잊히지 않도록, 그 위대한 업적들이 명성을 잃지 않도록 이 탐구를 적어 둔다.", author: "헤로도토스", original: "", source: "『역사』 서문, 기원전 5세기", note: "" },
+        { text: "훌륭한 역사가는 전설 속 식인귀를 닮았다. 인간의 살 냄새가 나는 곳에 그의 사냥감이 있다.", author: "마르크 블로크", original: "", source: "『역사를 위한 변명』", note: "" },
+        { text: "어려워서 감히 하지 못하는 것이 아니라, 감히 하지 않기 때문에 어려운 것이다.", author: "세네카", original: "Non quia difficilia sunt non audemus, sed quia non audemus difficilia sunt", source: "『도덕 서한』 104편", note: "" },
+        { text: "우리의 삶은 우리의 생각이 만들어낸다.", author: "마르쿠스 아우렐리우스", original: "", source: "『명상록』 제5권", note: "" },
+        { text: "인생에서 두려워할 것은 아무것도 없다. 이해해야 할 것이 있을 뿐이다. 지금이야말로 더 많이 이해하여 두려움을 줄여야 할 때다.", author: "마리 퀴리", original: "", source: "에브 퀴리 『퀴리 부인』에 실린 말", note: "" },
+        { text: "나에게 특별한 재능이 있는 것은 아니다. 다만 몹시 궁금해할 뿐이다.", author: "알베르트 아인슈타인", original: "", source: "카를 젤리히에게 보낸 편지, 1952", note: "" },
+        { text: "천재는 1퍼센트의 영감과 99퍼센트의 땀으로 이루어진다.", author: "토머스 에디슨", original: "Genius is one percent inspiration and ninety-nine percent perspiration.", source: "『하퍼스 먼슬리』에 실린 인터뷰, 1932", note: "" },
+        { text: "교육은 세상을 바꿀 수 있는 가장 강력한 무기다.", author: "넬슨 만델라", original: "Education is the most powerful weapon which you can use to change the world.", source: "1990년대 연설", note: "" },
+        { text: "낙관은 성취로 이끄는 믿음이다. 희망과 자신감 없이는 아무것도 이루어지지 않는다.", author: "헬렌 켈러", original: "", source: "『낙관론』, 1903", note: "" },
+        { text: "글을 읽을 줄 알게 되면, 그대는 영원히 자유로워진다.", author: "프레더릭 더글러스", original: "", source: "노예로 태어나 글을 배운 뒤 남긴 말", note: "" },
+        { text: "결코 굴복하지 마십시오. 결코, 결코, 결코.", author: "윈스턴 처칠", original: "Never give in — never, never, never", source: "해로 스쿨 연설, 1941년 10월 29일", note: "학생들 앞에서 한 연설이다." },
+        { text: "국민의, 국민에 의한, 국민을 위한 정부는 이 땅에서 사라지지 않을 것입니다.", author: "에이브러햄 링컨", original: "", source: "게티즈버그 연설, 1863년 11월 19일", note: "" },
+        { text: "아는 것은 좋아하는 것만 못하고, 좋아하는 것은 즐기는 것만 못하다.", author: "공자", original: "知之者不如好之者 好之者不如樂之者", source: "『논어』 옹야편", note: "" },
+        { text: "옛것을 익혀 새것을 알면 남의 스승이 될 수 있다[온고지신].", author: "공자", original: "溫故而知新 可以爲師矣", source: "『논어』 위정편", note: "" },
+        { text: "세 사람이 길을 가면 그중에 반드시 내 스승이 있다.", author: "공자", original: "三人行 必有我師焉", source: "『논어』 술이편", note: "" },
+        { text: "날이 추워진 뒤에야 소나무와 잣나무가 늦게 시든다는 것을 안다.", author: "공자", original: "歲寒然後 知松柏之後彫也", source: "『논어』 자한편", note: "추사 김정희의 「세한도」가 이 구절에서 나왔다." },
+        { text: "남이 나를 알아주지 않음을 걱정하지 말고, 내가 남을 알지 못함을 걱정하라.", author: "공자", original: "不患人之不己知 患不知人也", source: "『논어』 학이편", note: "" },
+        { text: "널리 배우고 뜻을 굳게 하며, 간절히 묻고 가까이에서 생각하라.", author: "자하", original: "博學而篤志 切問而近思", source: "『논어』 자장편", note: "" },
+        { text: "널리 배우고, 살펴 묻고, 신중히 생각하고, 밝게 가려내고, 성실하게 행하라.", author: "『중용』", original: "博學之 審問之 愼思之 明辨之 篤行之", source: "『중용』 20장", note: "" },
+        { text: "진실로 날로 새롭게 하려면, 나날이 새롭게 하고 또 날로 새롭게 하라.", author: "『대학』", original: "苟日新 日日新 又日新", source: "『대학』 전 2장", note: "" },
+        { text: "푸른색은 쪽에서 나왔지만 쪽보다 더 푸르다.", author: "순자", original: "靑出於藍而靑於藍", source: "『순자』 권학편", note: "제자가 스승을 넘어선다는 뜻의 ‘청출어람’이 여기서 나왔다." },
+        { text: "반걸음이 쌓이지 않으면 천 리에 이를 수 없다.", author: "순자", original: "不積跬步 無以至千里", source: "『순자』 권학편", note: "" },
+        { text: "천 리 길도 발밑에서 시작한다.", author: "노자", original: "千里之行 始於足下", source: "『도덕경』 64장", note: "" },
+        { text: "군자는 스스로 굳세게 하여 쉬지 않는다.", author: "『주역』", original: "君子以自强不息", source: "『주역』 건괘 상전", note: "" },
+        { text: "학문의 길은 다른 것이 없다. 흩어진 마음을 도로 찾는 것일 뿐이다.", author: "맹자", original: "學問之道無他 求其放心而已矣", source: "『맹자』 고자 상편", note: "" },
+        { text: "우리의 삶에는 끝이 있지만 앎에는 끝이 없다.", author: "장자", original: "吾生也有涯 而知也無涯", source: "『장자』 양생주", note: "" },
+        { text: "네 소원이 무엇이냐 하고 하느님이 물으시면, 나는 서슴지 않고 \"내 소원은 대한 독립이오\" 하고 대답할 것이다.", author: "김구", original: "", source: "『백범일지』 「나의 소원」", note: "" },
+        { text: "죽는 날까지 하늘을 우러러 한 점 부끄럼이 없기를.", author: "윤동주", original: "", source: "「서시」, 『하늘과 바람과 별과 시』", note: "" },
+        { text: "다시 천고(千古)의 뒤에 백마 타고 오는 초인이 있어 이 광야에서 목 놓아 부르게 하리라.", author: "이육사", original: "", source: "「광야」", note: "" },
+        { text: "낙망은 청년의 죽음이요, 청년이 죽으면 민족이 죽는다.", author: "안창호", original: "", source: "『안도산전서』에 실린 연설", note: "도산이 청년들 앞에서 한 말로 전한다." },
+        { text: "모든 인간은 본성적으로 알기를 원한다.", author: "아리스토텔레스", original: "", source: "『형이상학』 첫 문장", note: "" },
+        { text: "검토되지 않은 삶은 살 가치가 없다.", author: "소크라테스", original: "", source: "플라톤 『소크라테스의 변명』", note: "플라톤이 전한 재판정에서의 말이다." },
+        { text: "기하학에는 왕도가 없습니다.", author: "에우클레이데스", original: "", source: "프로클로스가 전한 말", note: "왕이 쉬운 길을 묻자 답했다고 전한다." },
+        { text: "우리가 가진 시간이 짧은 것이 아니라, 우리가 많은 시간을 허비하는 것이다.", author: "세네카", original: "", source: "『인생의 짧음에 관하여』", note: "" },
+        { text: "나는 생각한다, 그러므로 나는 존재한다.", author: "데카르트", original: "Je pense, donc je suis", source: "『방법서설』, 1637", note: "" },
+        { text: "인간은 자연에서 가장 약한 갈대에 지나지 않는다. 그러나 그는 생각하는 갈대다.", author: "파스칼", original: "", source: "『팡세』", note: "" },
+        { text: "내가 더 멀리 보았다면, 그것은 거인의 어깨 위에 올라섰기 때문입니다.", author: "아이작 뉴턴", original: "", source: "로버트 훅에게 보낸 편지, 1675", note: "" },
+        { text: "과감히 알려고 하라. 너 자신의 지성을 사용할 용기를 가져라.", author: "칸트", original: "Sapere aude", source: "「계몽이란 무엇인가」, 1784", note: "" },
+        { text: "아는 것이 곧 힘이다.", author: "프랜시스 베이컨", original: "ipsa scientia potestas est", source: "『성찰』, 1597", note: "" },
+        { text: "나를 죽이지 못하는 고통은 나를 더 강하게 만든다.", author: "니체", original: "", source: "『우상의 황혼』, 1889", note: "" },
+        { text: "내가 숲으로 간 것은 삶을 의도적으로 살아 보고 싶었기 때문이다.", author: "헨리 데이비드 소로", original: "", source: "『월든』, 1854", note: "" },
+        { text: "오늘 할 수 있는 일을 내일로 미루지 마라.", author: "벤저민 프랭클린", original: "", source: "『가난한 리처드의 달력』", note: "" },
+        { text: "나는 모든 것에도 불구하고 사람들의 마음이 진실로 선하다고 여전히 믿는다.", author: "안네 프랑크", original: "", source: "『안네의 일기』 1944년 7월 15일", note: "" },
+        { text: "첫 번째 원칙은 스스로를 속이지 않는 것입니다. 그리고 자기 자신이야말로 가장 속이기 쉬운 사람입니다.", author: "리처드 파인먼", original: "", source: "캘리포니아 공과대학 졸업 연설, 1974", note: "" },
+        { text: "우리는 별의 물질로 만들어졌다.", author: "칼 세이건", original: "", source: "『코스모스』, 1980", note: "" },
+        { text: "한 명의 아이, 한 명의 교사, 한 권의 책, 그리고 한 자루의 펜이 세상을 바꿀 수 있습니다.", author: "말랄라 유사프자이", original: "", source: "국제 연합 연설, 2013", note: "" },
+        { text: "늘 갈망하라, 늘 우직하라.", author: "스티브 잡스", original: "Stay hungry, stay foolish", source: "스탠퍼드 대학 졸업 연설, 2005", note: "잡스가 『홀 어스 카탈로그』의 마지막 문장을 인용한 것이다." },
+        { text: "나에게는 꿈이 있습니다.", author: "마틴 루서 킹", original: "", source: "워싱턴 행진 연설, 1963년 8월 28일", note: "" },
+        { text: "아침에 도를 들으면 저녁에 죽어도 좋다.", author: "공자", original: "朝聞道 夕死可矣", source: "『논어』 이인편", note: "" },
+        { text: "삼군의 장수는 빼앗을 수 있어도, 한 사내의 뜻은 빼앗을 수 없다.", author: "공자", original: "三軍可奪帥也 匹夫不可奪志也", source: "『논어』 자한편", note: "" },
+        { text: "나는 열다섯에 배움에 뜻을 두었다.", author: "공자", original: "吾十有五而志于學", source: "『논어』 위정편", note: "‘지학(志學)’이 열다섯 살을 뜻하게 된 유래다." },
+        { text: "사람이 도를 넓히는 것이지, 도가 사람을 넓히는 것이 아니다.", author: "공자", original: "人能弘道 非道弘人", source: "『논어』 위령공편", note: "" },
+        { text: "선비는 도량이 넓고 뜻이 굳세지 않으면 안 된다. 짐은 무겁고 갈 길은 멀기 때문이다.", author: "증자", original: "士不可以不弘毅 任重而道遠", source: "『논어』 태백편", note: "" },
+        { text: "나는 나의 호연지기를 잘 기른다.", author: "맹자", original: "我善養吾浩然之氣", source: "『맹자』 공손추 상편", note: "무엇에도 꺾이지 않는 크고 곧은 기운을 말한다." },
+        { text: "구하면 얻고 놓으면 잃는다.", author: "맹자", original: "求則得之 舍則失之", source: "『맹자』 고자 상편", note: "" },
+        { text: "높은 산에 올라 보지 않으면 하늘이 높은 줄을 모른다.", author: "순자", original: "不登高山 不知天之高也", source: "『순자』 권학편", note: "" },
+        { text: "옥은 다듬지 않으면 그릇이 되지 못하고, 사람은 배우지 않으면 도리를 알지 못한다.", author: "『예기』", original: "玉不琢 不成器 人不學 不知道", source: "『예기』 학기편", note: "" },
+        { text: "가르치는 이와 배우는 이는 서로를 자라게 한다.", author: "『예기』", original: "敎學相長", source: "『예기』 학기편", note: "" },
+        { text: "젊음은 두 번 오지 않고, 하루에 새벽은 두 번 없다. 때에 이르러 마땅히 힘쓰라. 세월은 사람을 기다리지 않는다.", author: "도연명", original: "盛年不重來 一日難再晨 及時當勉勵 歲月不待人", source: "「잡시」", note: "" },
+        { text: "학업은 부지런함에서 정밀해지고 노는 데서 거칠어진다.", author: "한유", original: "業精於勤 荒於嬉", source: "「진학해(進學解)」", note: "" },
+        { text: "백성이 나라의 근본이니, 근본이 튼튼해야 나라가 평안하다.", author: "『서경』", original: "民惟邦本 本固邦寧", source: "『서경』 오자지가", note: "세종이 즐겨 인용한 구절이다." },
+        { text: "고인도 날 못 보고 나도 고인 못 뵈. 고인을 못 뵈도 녀던 길 앞에 있네. 녀던 길 앞에 있거든 아니 녀고 어떨고.", author: "이황", original: "", source: "「도산십이곡」", note: "옛사람을 만날 수는 없어도 그가 걸어간 길은 남아 있다는 뜻이다." },
+        { text: "나라의 안위를 걱정하고 애태운다.", author: "안중근", original: "國家安危 勞心焦思", source: "뤼순 감옥에서 쓴 유묵, 1910", note: "" },
+        { text: "너희도 만일 피가 있고 뼈가 있다면, 반드시 조선을 위하여 용감한 투사가 되어라.", author: "윤봉길", original: "", source: "「강보에 싸인 두 병정에게」, 1932", note: "의거를 앞두고 두 아들에게 남긴 글이다." },
+        { text: "우리는 만날 때에 떠날 것을 염려하는 것과 같이, 떠날 때에 다시 만날 것을 믿습니다.", author: "한용운", original: "", source: "「님의 침묵」, 1926", note: "" },
+        { text: "지금은 남의 땅 — 빼앗긴 들에도 봄은 오는가.", author: "이상화", original: "", source: "「빼앗긴 들에도 봄은 오는가」, 1926", note: "" },
+        { text: "잘 채워진 머리보다 잘 만들어진 머리가 낫다.", author: "몽테뉴", original: "", source: "『수상록』 「아이들의 교육에 관하여」", note: "" },
+        { text: "식물은 가꾸기로 만들어지고, 사람은 교육으로 만들어진다.", author: "루소", original: "", source: "『에밀』, 1762", note: "" },
+        { text: "사람은 노력하는 한 방황한다.", author: "괴테", original: "Es irrt der Mensch, solang er strebt", source: "『파우스트』 「천상의 서곡」", note: "" },
+        { text: "우리는 우리의 정원을 가꾸어야 한다.", author: "볼테르", original: "", source: "『캉디드』 마지막 문장, 1759", note: "" },
+        { text: "모든 고귀한 것은 드물고도 어렵다.", author: "스피노자", original: "Omnia praeclara tam difficilia quam rara sunt", source: "『에티카』 마지막 문장", note: "" },
+        { text: "이러한 생명관에는 장엄함이 있다.", author: "찰스 다윈", original: "", source: "『종의 기원』 마지막 문단, 1859", note: "" },
+        { text: "관찰의 영역에서 우연은 준비된 마음에만 호의를 베푼다.", author: "루이 파스퇴르", original: "", source: "릴 대학 강연, 1854", note: "" },
+        { text: "중요한 것은 질문을 멈추지 않는 것이다.", author: "알베르트 아인슈타인", original: "", source: "『라이프』 인터뷰, 1955", note: "" },
+        { text: "우리가 두려워해야 할 유일한 것은 두려움 그 자체입니다.", author: "프랭클린 루스벨트", original: "", source: "대통령 취임 연설, 1933년 3월 4일", note: "" },
+        { text: "저는 피와 수고와 눈물과 땀 말고는 드릴 것이 없습니다.", author: "윈스턴 처칠", original: "", source: "영국 하원 연설, 1940년 5월 13일", note: "" },
+        { text: "조국이 여러분을 위해 무엇을 할 수 있는지 묻지 말고, 여러분이 조국을 위해 무엇을 할 수 있는지 물으십시오.", author: "존 F. 케네디", original: "", source: "대통령 취임 연설, 1961년 1월 20일", note: "" },
+        { text: "큰 산에 올라 보면, 오를 산이 더 많다는 것을 알게 된다.", author: "넬슨 만델라", original: "", source: "『자유를 향한 머나먼 길』, 1994", note: "" },
+        { text: "어디에서든 불의는 모든 곳의 정의를 위협합니다.", author: "마틴 루서 킹", original: "", source: "「버밍햄 감옥에서 보낸 편지」, 1963", note: "" },
+        { text: "사람들은 내가 몸이 피곤해서 자리를 내주지 않았다고 말하지만, 내가 지쳐 있던 것은 굴복하는 일이었다.", author: "로자 파크스", original: "", source: "『로자 파크스: 나의 이야기』, 1992", note: "" },
+        { text: "여성은 여성으로 태어나는 것이 아니라 여성이 되는 것이다.", author: "시몬 드 보부아르", original: "", source: "『제2의 성』, 1949", note: "" },
+        { text: "여성이 소설을 쓰려면 돈과 자기만의 방이 있어야 한다.", author: "버지니아 울프", original: "", source: "『자기만의 방』, 1929", note: "" },
+        { text: "그 누구도 남을 일방적으로 가르치지 않으며, 그 누구도 홀로 배우지 않는다. 사람들은 세계를 매개로 서로를 가르친다.", author: "파울루 프레이리", original: "", source: "『페다고지』, 1968", note: "" },
+        { text: "남을 아는 자는 지혜롭고, 자신을 아는 자는 밝다.", author: "노자", original: "知人者智 自知者明", source: "『도덕경』 33장", note: "" },
+        { text: "물이 너무 맑으면 고기가 없고, 사람이 너무 살피면 따르는 무리가 없다.", author: "반고", original: "水至淸則無魚 人至察則無徒", source: "『한서』 동방삭전", note: "" },
+        { text: "자신이 원하지 않는 바를 남에게 베풀지 말라.", author: "공자", original: "己所不欲 勿施於人", source: "『논어』 안연편", note: "" },
+        { text: "최고의 선은 물과 같다.", author: "노자", original: "上善若水", source: "『도덕경』 8장", note: "" },
+        { text: "군자는 화합하지만 부화뇌동하지 않고, 소인은 부화뇌동하지만 화합하지 못한다.", author: "공자", original: "君子和而不同 小人同而不和", source: "『논어』 자로편", note: "" },
+        { text: "천리 길도 한 걸음부터 시작된다.", author: "노자", original: "千里之行 始於足下", source: "『도덕경』 64장", note: "" },
+        { text: "가는 자는 이와 같구나! 밤낮을 쉬지 않는구나.", author: "공자", original: "逝者如斯夫 不舍晝夜", source: "『논어』 자한편", note: "" },
+        { text: "백성을 귀하게 여기고, 임금을 가벼이 여긴다.", author: "맹자", original: "民爲貴 社稷次之 君爲輕", source: "『맹자』 진심 하", note: "" },
+        { text: "아는 것을 안다고 하고 모르는 것을 모른다고 하는 것, 이것이 곧 앎이다.", author: "공자", original: "知之爲知之 不知爲不知 是知也", source: "『논어』 위정편", note: "" },
+        { text: "지혜로운 자는 물을 좋아하고, 어진 자는 산을 좋아한다.", author: "공자", original: "智者樂水 仁者樂山", source: "『논어』 옹야편", note: "" },
+        { text: "덕은 외롭지 않으며 반드시 이웃이 있다.", author: "공자", original: "德不孤 必有隣", source: "『논어』 이인편", note: "" },
+        { text: "스스로를 굽히는 자는 온전할 수 있다.", author: "노자", original: "曲則全", source: "『도덕경』 22장", note: "" },
+        { text: "만물은 나란하며 차별이 없다.", author: "장자", original: "齊物論", source: "『장자』 제물론", note: "" },
+        { text: "큰 그릇은 늦게 이루어진다.", author: "노자", original: "大器晩成", source: "『도덕경』 41장", note: "" },
+        { text: "허물을 알면 반드시 고쳐라.", author: "추적(編)", original: "知過必改", source: "『명심보감』 존심편", note: "" },
+        { text: "뿌리가 깊은 나무는 바람에 흔들리지 아니하므로 꽃이 좋고 열매가 많다.", author: "정인지 외", original: "불휘 기픈 남간 바라매 아니 뮐ᄊᆡ", source: "『용비어천가』 2장", note: "" },
+        { text: "가난하면서도 원망하지 않기는 어렵고, 부유하면서도 교만하지 않기는 쉽다.", author: "공자", original: "貧而無怨難 富而無驕易", source: "『논어』 헌문편", note: "" },
+        { text: "의로움을 보고 행하지 않음은 용기가 없는 것이다.", author: "공자", original: "見義不爲 無勇也", source: "『논어』 위정편", note: "" },
+        { text: "자신을 이기는 자가 진정 강한 자다.", author: "노자", original: "勝人者有力 自勝者强", source: "『도덕경』 33장", note: "" },
+        { text: "도(道)를 도라고 부를 수 있다면 영원한 도가 아니다.", author: "노자", original: "道可道 非常道", source: "『도덕경』 1장", note: "" },
+        { text: "만족할 줄 아는 사람은 항상 부유하다.", author: "노자", original: "知足者富", source: "『도덕경』 33장", note: "" },
+        { text: "말은 어눌하고 행동은 민첩하고자 해야 한다.", author: "공자", original: "欲訥於言而敏於行", source: "『논어』 이인편", note: "" },
+        { text: "가장 훌륭한 싸움은 싸우지 않고 이기는 것이다.", author: "손무", original: "不戰而屈人之兵 善之善者也", source: "『손자병법』 모공편", note: "" },
+        { text: "지극한 정성은 쉴 틈이 없다.", author: "자사", original: "至誠無息", source: "『중용』 26장", note: "" },
+        { text: "일일삼성, 하루에 세 번 나 자신을 반성한다.", author: "증자", original: "吾日三省吾身", source: "『논어』 학이편", note: "" },
+        { text: "과유불급, 지나침은 미치지 못함과 같다.", author: "공자", original: "過猶不及", source: "『논어』 선진편", note: "" },
+        { text: "책을 읽어 만 권을 돌파하면 붓을 든 품이 신과 같다.", author: "두보", original: "讀書破萬卷 下筆如有神", source: "「봉증위좌승장 이십이운」", note: "" },
+        { text: "마음이 없으면 보아도 보이지 않고 들어도 들리지 않는다.", author: "증자", original: "心不在焉 視而不見 聽而不聞", source: "『대학』 전7장", note: "" },
+        { text: "사람은 각기 그 그릇에 따라 쓰임이 있다.", author: "이황", original: "人各有所用", source: "『퇴계집』", note: "" },
+        { text: "티끌 모아 태산이다.", author: "순자", original: "積土成山", source: "『순자』 권학편", note: "" },
+        { text: "뜻이 있는 곳에 길이 있다.", author: "범엽", original: "有志者事竟成", source: "『후한서』 경엄전", note: "" },
+        { text: "근면함은 값을 매길 수 없는 보배다.", author: "추적(編)", original: "勤爲無價之寶", source: "『명심보감』 근학편", note: "" },
+        { text: "우리가 반복적으로 하는 행동이 바로 우리 자신이다.", author: "윌 듀랜트", original: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", source: "『철학 이야기』", note: "" },
+        { text: "인간은 자유롭게 태어났지만, 어디서나 쇠사슬에 얽매여 있다.", author: "장자크 루소", original: "L'homme est né libre, et partout il est dans les fers", source: "『사회계약론』 1권 1장", note: "" },
+        { text: "행복은 우리 자신에게 달려 있다.", author: "아리스토텔레스", original: "Happiness depends upon ourselves", source: "『니코마코스 윤리학』", note: "" },
+        { text: "나는 생각한다, 고로 나는 존재한다.", author: "르네 데카르트", original: "Cogito, ergo sum", source: "『방법서설』 4부", note: "" },
+        { text: "너 자신을 알라.", author: "델포이 아폴론 신전 격언", original: "Γνῶθι σεαυτόν", source: "", note: "" },
+        { text: "인생은 짧고 예술(기술)은 길다.", author: "히포크라테스", original: "Ars longa, vita brevis", source: "『잠언』 1장 1절", note: "" },
+        { text: "주사위는 던져졌다.", author: "율리우스 카이사르", original: "Alea iacta est", source: "", note: "" },
+        { text: "만인의 만인에 대한 투쟁", author: "토머스 홉스", original: "Bellum omnium contra omnes", source: "『리바이어던』 1부 13장", note: "" },
+        { text: "아는 것이 힘이다.", author: "프랜시스 베이컨", original: "Ipsa scientia potestas est", source: "『이단론』", note: "" },
+        { text: "현재를 잡아라, 가급적 내일이라는 말은 최소한만 믿어라.", author: "호라티우스", original: "Carpe diem, quam minimum credula postero", source: "『송가』 1권 11편", note: "" },
+        { text: "죽음을 기억하라.", author: "라틴어 관용구", original: "Memento mori", source: "", note: "" },
+        { text: "왔노라, 보았노라, 이겼노라.", author: "율리우스 카이사르", original: "Veni, vidi, vici", source: "", note: "" },
+        { text: "건전한 신체에 건전한 정신이 깃든다.", author: "유베날리스", original: "Mens sana in corpore sano", source: "『풍자시』 10권", note: "" },
+        { text: "지혜는 경이로움에서 시작된다.", author: "소크라테스 (플라톤, 『테아이테토스』)", original: "Wonder is the beginning of wisdom", source: "", note: "" },
+        { text: "인간은 정치적 동물이다.", author: "아리스토텔레스", original: "ὁ ἄνθρωπος φύσει πολιτικὸν ζῷον", source: "『정치학』 1권 2장", note: "" },
+        { text: "운명은 용기 있는 자를 돕는다.", author: "베르길리우스", original: "Fortes fortuna adiuvat", source: "『아이네이스』 10권", note: "" },
+        { text: "더 높이 날아오르는 새가 더 멀리 본다.", author: "리처드 바크", original: "The seagull sees farthest who flies highest", source: "『갈매기의 꿈』", note: "" },
+        { text: "자유는 책임을 의미한다. 이것이 대부분의 사람들이 자유를 두려워하는 이유다.", author: "조지 버나드 쇼", original: "Liberty means responsibility. That is why most men dread it.", source: "『인간과 초인』", note: "" },
+        { text: "경험은 최고의 교사다.", author: "키케로 등 라틴어 격언", original: "Usus est magister optimus", source: "", note: "" },
+        { text: "역사는 반복된다. 처음에는 비극으로, 두 번째는 희극으로.", author: "카를 마르크스", original: "History repeats itself, first as tragedy, second as farce.", source: "『루이 보나파르트의 브뤼메르 18일』", note: "" },
+        { text: "가장 깊은 진리는 가장 단순한 법이다.", author: "레프 톨스토이", original: "The deepest truths are the simplest", source: "", note: "" },
+        { text: "두려워해야 할 유일한 것은 두려움 그 자체다.", author: "프랭클린 D. 루스벨트", original: "The only thing we have to fear is fear itself", source: "", note: "" },
+        { text: "용기란 두려움이 없는 것이 아니라, 두려움에 맞서는 것이다.", author: "넬슨 만델라", original: "Courage is not the absence of fear, but the triumph over it", source: "『자유를 향한 머나먼 여정』", note: "" },
+        { text: "우리가 읽어야 할 책은 우리 안의 얼어붙은 바다를 깨는 도끼여야 한다.", author: "프란츠 카프카", original: "Ein Buch muß die Axt sein für das gefrorene Meer in uns", source: "", note: "" },
+        { text: "인내하라 그리고 참아라, 이 고통은 언젠가 너에게 도움이 될 것이다.", author: "오비디우스", original: "Perfer et obdura, dolor hic tibi proderit olim", source: "『연애술』", note: "" },
+        { text: "가시밭길을 지나 별을 향하여.", author: "라틴어 관용구", original: "Per aspera ad astra", source: "", note: "" },
+        { text: "자신의 무지를 아는 것이 진정한 지혜다.", author: "소크라테스 요약", original: "To know, is to know that you know nothing", source: "", note: "" },
+        { text: "행복한 가정은 모두 엇비슷하지만, 불행한 가정은 이유가 제각기 다르다.", author: "레프 톨스토이", original: "Happy families are all alike; every unhappy family is unhappy in its own way.", source: "『안나 카레니나』", note: "" },
+        { text: "모든 것은 변하며, 아무것도 머무르지 않는다.", author: "헤라클레이토스", original: "Panta rhei", source: "", note: "" },
+        { text: "시간은 돈이다.", author: "벤저민 프랭클린", original: "Time is money", source: "", note: "" },
+        { text: "중용을 지켜라.", author: "호라티우스", original: "Aurea mediocritas", source: "『송가』 2권 10편", note: "" },
+        { text: "진리가 너희를 자유롭게 하리라.", author: "작자 미상", original: "Veritas vos liberabit", source: "『요한복음』 8장 32절", note: "" },
+        { text: "우리의 인생은 우리의 생각대로 만들어진다.", author: "마르쿠스 아우렐리우스", original: "Our life is what our thoughts make it", source: "『명상록』", note: "" },
+        { text: "희망은 깨어 있는 꿈이다.", author: "아리스토텔레스", original: "Hope is a waking dream", source: "", note: "" },
+        { text: "최고의 복수는 원수와 같아지지 않는 것이다.", author: "마르쿠스 아우렐리우스", original: "The best revenge is not to be like your enemy", source: "『명상록』 6권 6장", note: "" },
+        { text: "내 사전에 불가능이란 없다.", author: "나폴레옹 보나파르트 (관용구)", original: "Impossible n'est pas français", source: "", note: "" },
+        { text: "별을 향해 얼굴을 들어라. 그러면 그림자는 네 뒤로 떨어질 것이다.", author: "헬렌 켈러", original: "Keep your face to the sunshine and you cannot see a shadow", source: "", note: "" },
+        { text: "젊은이여, 너의 이름을 남겨라.", author: "랄프 왈도 에머슨", original: "Youth, make your name", source: "", note: "" },
+        { text: "성공은 최종적인 것이 아니며, 실패는 치명적인 것이 아니다. 중요한 것은 계속하려는 용기다.", author: "윈스턴 처칠 (통용구)", original: "Success is not final, failure is not fatal: it is the courage to continue that counts.", source: "", note: "" },
+        { text: "살아야 할 이유를 가진 사람은 어떠한 과정도 견뎌낼 수 있다.", author: "프리드리히 니체", original: "He who has a why to live for can bear almost any how.", source: "『우상의 황혼』", note: "" },
+        { text: "가장 어두운 밤도 언젠가 끝나고 태양은 뜬다.", author: "빅토르 위고", original: "Even the darkest night will end and the sun will rise.", source: "『레 미제라블』", note: "" },
+        { text: "위대한 것을 위해 좋은 것을 포기하는 것을 두려워하지 말라.", author: "존 D. 록펠러", original: "Don't be afraid to give up the good to go for the great.", source: "", note: "" },
+        { text: "시작이 반이다.", author: "호라티우스", original: "Dimidium facti qui coepit habet", source: "『에피스툴라』 1권 2편", note: "" },
+        { text: "아침에 일어날 때, 당신이 살아있고, 숨 쉬고, 생각하고, 즐기고, 사랑할 수 있다는 것이 얼마나 큰 특권인지 생각하라.", author: "마르쿠스 아우렐리우스", original: "When you arise in the morning think of what a privilege it is to be alive...", source: "『명상록』", note: "" },
+        { text: "우리는 우리가 기대하는 수준까지 올라가는 것이 아니라, 우리가 훈련한 수준까지 떨어진다.", author: "아르킬로코스", original: "We don't rise to the level of our expectations, we fall to the level of our training.", source: "", note: "" },
+        { text: "배는 항구에 있을 때 가장 안전하지만, 그것이 배의 존재 이유는 아니다.", author: "존 A. 셰드", original: "A ship in harbor is safe, but that is not what ships are built for.", source: "『바다의 소금과 다락방의 향신료』", note: "" },
+        { text: "모든 사람은 천재다. 하지만 물고기를 나무 타기 능력으로 평가한다면, 평생 바보로 믿으며 살 것이다.", author: "매튜 켈리 우화", original: "Everybody is a genius. But if you judge a fish by its ability to climb a tree...", source: "", note: "" },
+        { text: "상상력은 지식보다 중요하다.", author: "알베르트 아인슈타인", original: "Imagination is more important than knowledge.", source: "", note: "" },
+        { text: "어디를 가든지 마음을 다해 가라.", author: "공자 의역", original: "Wheresoever you go, go with all your heart.", source: "", note: "" },
+        { text: "위대한 일은 충동이 아니라 여러 작은 일이 모여서 이루어진다.", author: "빈센트 반 고흐", original: "Great things are done by a series of small things brought together.", source: "", note: "" },
+        { text: "어려움 한가운데 그곳에 기회가 있다.", author: "알베르트 아인슈타인", original: "In the middle of difficulty lies opportunity.", source: "", note: "" },
+        { text: "어리석은 영감이 산을 옮긴다는 뜻으로, 어떤 일이든 꾸준히 노력하면 결국 이룰 수 있음을 이르는 말", author: "작자 미상", original: "愚公移山 (우공이산)", source: "『열자(列子)』 탕문편(湯問篇)", note: "" },
+        { text: "미래는 자신의 꿈의 아름다움을 믿는 자들의 것이다.", author: "엘리너 루스벨트", original: "The future belongs to those who believe in the beauty of their dreams.", source: "", note: "" },
+    ];
+
+    // 명언 셔플 및 반복 방지 로직 
+    let shuffledQuotes = [];
+    let quoteIndex = 0;
+
+    function initQuotes() {
+        // 원본 배열 복사 후 피셔-예이츠 방식(Fisher-Yates Shuffle)으로 완벽하게 랜덤으로 섞음
+        shuffledQuotes = [...quotesDB];
+        for (let i = shuffledQuotes.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledQuotes[i], shuffledQuotes[j]] = [shuffledQuotes[j], shuffledQuotes[i]];
+        }
+        quoteIndex = 0;
+    }
+
+    // 명언 렌더링 함수
+    function renderRandomQuote(target) {
+        // 처음이거나 187개를 전부 다 보았다면 다시 새롭게 섞기
+        if (shuffledQuotes.length === 0 || quoteIndex >= shuffledQuotes.length) {
+            initQuotes();
+        }
+        
+        // 섞인 배열에서 순서대로 하나씩 뽑기 (187개 전부 나올 때까지 절대 중복 안됨)
+        const quote = shuffledQuotes[quoteIndex];
+        quoteIndex++;
+        
+        const prefix = target === 'screen' ? 'qs' : 'qm'; 
+        
+        document.getElementById(`${prefix}-text`).innerText = `"${quote.text}"`;
+        document.getElementById(`${prefix}-original`).innerText = quote.original ? quote.original : "";
+        document.getElementById(`${prefix}-author`).innerText = quote.author ? quote.author : "작자 미상";
+        document.getElementById(`${prefix}-source`).innerText = quote.source ? quote.source : "";
+        
+        const noteElem = document.getElementById(`${prefix}-note`);
+        if (noteElem) {
+            noteElem.innerText = quote.note ? quote.note : "";
+        }
+    }
+
+    function openQuoteModal() {
+        renderRandomQuote('modal');
+        document.getElementById('quoteModal').style.display = 'flex';
+    }
+
+
+    // ----------------------------------------------------
+    // [퀴즈 및 화면 제어 로직]
+    // ----------------------------------------------------
     const originalQuizData = [
         { type: 'ox', question: "몽골의 내정 간섭 시기, 고려는 국가 체제와 풍속을 완전히 상실하였다.", options: ["O", "X"], answer: 1, explanation: "몽골의 내정 간섭 시기에도 고려는 국가 체제와 고유한 풍속을 유지하였습니다." },
         { type: 'mcq', question: "몽골이 일본 원정을 위해 설치하였으나 이후 고려의 내정을 간섭하는 데 활용한 기구는?", options: ["정동행성", "교정도감", "도병마사", "식목도감"], answer: 0, explanation: "정동행성은 본래 일본 원정을 위해 설치되었으나, 원정이 실패한 이후에도 남아 고려의 내정을 간섭하는 데 활용되었습니다." },
@@ -242,18 +580,21 @@
     let activeQuizData = []; 
     let rankingsDB = []; 
     let userAnswers = [];
-
     let currentQuestionIndex = 0;
     let score = 0;
     let currentCombo = 0;
     let currentUser = null;
-    
     let hearts = 5;
     let stars = 0;
     let startTime; 
 
+    window.onload = () => {
+        document.getElementById('topNav').style.display = 'none';
+    };
+
     function startApp() {
-        goHome();
+        renderRandomQuote('screen');
+        showScreen('quoteScreen');
     }
 
     function goHome() {
@@ -267,22 +608,27 @@
         
         const topNav = document.getElementById('topNav');
         const gameStats = document.getElementById('gameStats');
+        const quoteNavBtn = document.getElementById('quoteNavBtn');
         
-        if (screenId === 'splash') {
+        if (screenId === 'splash' || screenId === 'quoteScreen') {
             topNav.style.display = 'none';
             gameStats.style.display = 'none';
         } else if (screenId === 'quiz') {
             topNav.style.display = 'flex';
             gameStats.style.display = 'flex';
+            quoteNavBtn.style.display = 'none'; // 퀴즈 중 명언 버튼 숨김
         } else {
             topNav.style.display = 'flex';
             gameStats.style.display = 'none';
+            
+            // 정보 입력창(userInfo)에서는 명언 팝업 버튼 숨김
+            if (screenId === 'userInfo') {
+                quoteNavBtn.style.display = 'none';
+            } else {
+                quoteNavBtn.style.display = 'flex'; // 홈, 리뷰, 랭킹 화면에서는 버튼 노출
+            }
         }
     }
-
-    window.onload = () => {
-        document.getElementById('topNav').style.display = 'none';
-    };
 
     function checkEntryCode() {
         const code = document.getElementById('entryCode').value;
@@ -307,11 +653,6 @@
     function startQuizAsTeacher() {
         currentUser = { studentId: "Teacher", name: "승수쌤", score: 0, stars: 0, classNum: "T" };
         initQuiz();
-    }
-
-    function goToRanking() {
-        renderRanking();
-        showScreen('ranking');
     }
 
     function startQuiz() {
@@ -353,7 +694,7 @@
         if (qData.type === 'short') qTypeLabel = "[단답형] ";
         if (qData.question.includes('순서')) qTypeLabel = "[순서 맞추기] ";
 
-        document.getElementById('questionText').innerHTML = `<span style="color:#a28ad0; font-size:14px;">${qTypeLabel}</span><br>Q${currentQuestionIndex + 1}. ${qData.question}`;
+        document.getElementById('questionText').innerHTML = `<span style="color:#735bf2; font-size:16px;">${qTypeLabel}</span><br>Q${currentQuestionIndex + 1}. ${qData.question}`;
         document.getElementById('progress').innerText = `문제 ${currentQuestionIndex + 1} / ${activeQuizData.length}`;
         document.getElementById('scoreDisplay').innerText = `점수: ${score}`;
         
@@ -389,10 +730,16 @@
             input.id = 'shortAnswerInput';
             input.placeholder = '정답을 입력하세요';
             input.autocomplete = 'off';
+            input.style.width = '100%';
+            input.style.padding = '18px';
+            input.style.fontSize = '16px';
+            input.style.borderRadius = '14px';
+            input.style.border = '1.5px solid #ddd';
 
             const submitBtn = document.createElement('button');
             submitBtn.className = 'btn';
             submitBtn.innerText = '정답 확인';
+            submitBtn.style.marginTop = '15px';
             submitBtn.onclick = () => checkShortAnswer(qData);
 
             input.addEventListener('keyup', (e) => {
@@ -472,7 +819,6 @@
         }
     }
 
-    // 구글 시트로 데이터 전송 (앱스 스크립트 연결 시 작동)
     function sendToGoogleSheet(user) {
         const scriptUrl = '여기에_구글_앱스_스크립트_URL_입력'; 
         if (scriptUrl === '여기에_구글_앱스_스크립트_URL_입력' || user.classNum === "T") return;
@@ -523,23 +869,23 @@
             const item = document.createElement('li');
             item.className = `review-item ${ans.isCorrect ? 'correct' : 'incorrect'}`;
             item.innerHTML = `<div class="review-q">Q${index + 1}. ${ans.question.replace('<br>', ' ')}</div><div class="review-a">정답: ${ans.correctAnswerText}</div>`;
-            item.onclick = () => showModal(ans.explanation);
+            item.onclick = () => {
+                document.getElementById('explanationText').innerText = ans.explanation;
+                document.getElementById('explanationModal').style.display = 'flex';
+            };
             reviewList.appendChild(item);
         });
     }
 
-    function showModal(explanation) {
-        document.getElementById('explanationText').innerText = explanation;
-        document.getElementById('explanationModal').style.display = 'flex';
-    }
-    
-    function closeModal() {
-        document.getElementById('explanationModal').style.display = 'none';
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
     }
     
     window.onclick = function(event) {
-        const modal = document.getElementById('explanationModal');
-        if (event.target == modal) { modal.style.display = "none"; }
+        const expModal = document.getElementById('explanationModal');
+        const quoteModal = document.getElementById('quoteModal');
+        if (event.target == expModal) expModal.style.display = "none";
+        if (event.target == quoteModal) quoteModal.style.display = "none";
     }
 
     function getMedalDisplay(index) {
