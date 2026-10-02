@@ -310,6 +310,9 @@
 </div>
 
 <script>
+    // 선생님, 아래 부분에 위에서 만든 앱스 스크립트 '웹 앱 URL'을 넣어주세요!
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbxxgaXI4ANW94duwt_OllT6TgdeCPxUZSSVA2z2FORtsHLT21KxtUw81h1SY1ePbQPWSQ/exec'; 
+
     // ----------------------------------------------------
     // [명언 데이터베이스 - 제공된 187개 풀버전 (전체 포함)]
     // ----------------------------------------------------
@@ -630,10 +633,51 @@
         }
     }
 
-    // 트로피 버튼 등에서 명예의 전당으로 이동하는 함수 (추가됨)
-    function goToRanking() {
+    // 트로피 버튼 등에서 명예의 전당으로 이동할 때 구글 시트에서 전체 랭킹을 가져옵니다.
+    async function goToRanking() {
         showScreen('ranking');
-        renderRanking();
+        
+        const overallUl = document.getElementById('overallRank');
+        const classUl = document.getElementById('classRank');
+        const myClassUl = document.getElementById('myClassRank');
+        
+        overallUl.innerHTML = '<li class="rank-item" style="justify-content:center;">데이터를 불러오는 중입니다...⏳</li>';
+        classUl.innerHTML = '';
+        myClassUl.innerHTML = '';
+        
+        if (scriptUrl === '여기에_웹앱_URL_입력') {
+            overallUl.innerHTML = '<li class="rank-item" style="justify-content:center; color:#e74c3c;">구글 시트 연동 URL이 설정되지 않았습니다.</li>';
+            return;
+        }
+
+        try {
+            const response = await fetch(scriptUrl);
+            const data = await response.json();
+            
+            rankingsDB = [];
+            // data는 [[타임스탬프, 학번, 이름, 학급, 점수, 별, 소요 시간], ...] 형태입니다.
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                // 1행 헤더(제목) 건너뛰기
+                if (i === 0 && (row[1] === '학번' || row[1] === 'studentId')) continue;
+                
+                // 데이터 길이 안전 점검
+                if (row.length >= 7) {
+                    rankingsDB.push({
+                        studentId: String(row[1]),
+                        name: row[2],
+                        classNum: String(row[3]),
+                        score: Number(row[4]),
+                        stars: Number(row[5]),
+                        time: row[6]
+                    });
+                }
+            }
+            renderRanking();
+        } catch (error) {
+            console.error('랭킹 데이터 불러오기 실패:', error);
+            overallUl.innerHTML = '<li class="rank-item" style="justify-content:center; color:#e74c3c;">데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</li>';
+        }
     }
 
     function checkEntryCode() {
@@ -827,20 +871,24 @@
     }
 
     function sendToGoogleSheet(user) {
-        // [구글 시트 연동을 위한 안내] 선생님, 아래의 URL을 지우고 발급받은 '웹 앱 URL'을 넣어주세요!
-        const scriptUrl = '여기에_구글_앱스_스크립트_URL_입력'; 
-        if (scriptUrl === '여기에_구글_앱스_스크립트_URL_입력' || user.classNum === "T") return;
+        if (scriptUrl === '여기에_웹앱_URL_입력' || user.classNum === "T") return;
 
-        // 학번, 이름, 시간, 점수가 구글 시트로 정상 전송됨
         const payload = {
             studentId: user.studentId,
             name: user.name,
-            time: user.time,
-            score: user.score
+            classNum: user.classNum,
+            score: user.score,
+            stars: user.stars,
+            time: user.time
         };
 
+        // no-cors 모드를 사용하여 깃허브에서 직접 POST 할 때 발생하는 CORS 오류 방지
         fetch(scriptUrl, {
             method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8',
+            },
             body: JSON.stringify(payload)
         }).catch(err => console.error('전송 실패:', err));
     }
@@ -858,8 +906,7 @@
             currentUser.time = timeString;
             
             if(currentUser.classNum !== "T") {
-                rankingsDB.push({...currentUser});
-                // 구글 시트에 학번 포함 전송
+                // 구글 시트로 POST 전송
                 sendToGoogleSheet(currentUser);
             }
         }
@@ -923,7 +970,7 @@
 
         let sortedAll = Object.values(highestScoresObj).sort((a, b) => b.score - a.score);
         
-        // 전체 랭킹 렌더링 (학번 제거 및 이름만 노출)
+        // 전체 랭킹 렌더링 (학번 숨김 및 이름만 노출)
         sortedAll.forEach((user, index) => {
             let li = document.createElement('li');
             li.className = 'rank-item' + (currentUser && user.studentId === currentUser.studentId ? ' me' : '');
@@ -956,7 +1003,7 @@
         
         if(classAverages.length === 0) classUl.innerHTML = `<li class="rank-item" style="justify-content:center; color:#888;">아직 데이터가 없습니다.</li>`;
 
-        // 우리 학급 내 랭킹 렌더링 (학번 제거 및 이름만 노출)
+        // 우리 학급 내 랭킹 렌더링 (학번 숨김 및 이름만 노출)
         if (currentUser && currentUser.classNum !== "T") {
             let myClassUsers = sortedAll.filter(user => user.classNum === currentUser.classNum).sort((a, b) => b.score - a.score);
             myClassUsers.forEach((user, index) => {
