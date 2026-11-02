@@ -311,7 +311,7 @@
 
 <script>
     // 선생님, 아래 부분에 위에서 만든 앱스 스크립트 '웹 앱 URL'을 넣어주세요!
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbwJgb9p-xiQ3lOqldlqIRIzTdKcXuZWLAKrI5pRcHzPuZWZw4EklOiq0GF4uxJz6nEegg/exec'; 
+    const scriptUrl = '여기에_웹앱_URL_입력'; 
 
     // ----------------------------------------------------
     // [명언 데이터베이스 - 제공된 187개 풀버전 (전체 포함)]
@@ -506,12 +506,10 @@
         { text: "미래는 자신의 꿈의 아름다움을 믿는 자들의 것이다.", author: "엘리너 루스벨트", original: "The future belongs to those who believe in the beauty of their dreams.", source: "", note: "" },
     ];
 
-    // 명언 셔플 및 반복 방지 로직 
     let shuffledQuotes = [];
     let quoteIndex = 0;
 
     function initQuotes() {
-        // 원본 배열 복사 후 피셔-예이츠 방식(Fisher-Yates Shuffle)으로 완벽하게 랜덤으로 섞음
         shuffledQuotes = [...quotesDB];
         for (let i = shuffledQuotes.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -520,14 +518,10 @@
         quoteIndex = 0;
     }
 
-    // 명언 렌더링 함수
     function renderRandomQuote(target) {
-        // 처음이거나 187개를 전부 다 보았다면 다시 새롭게 섞기
         if (shuffledQuotes.length === 0 || quoteIndex >= shuffledQuotes.length) {
             initQuotes();
         }
-        
-        // 섞인 배열에서 순서대로 하나씩 뽑기 (187개 전부 나올 때까지 절대 중복 안됨)
         const quote = shuffledQuotes[quoteIndex];
         quoteIndex++;
         
@@ -548,7 +542,6 @@
         renderRandomQuote('modal');
         document.getElementById('quoteModal').style.display = 'flex';
     }
-
 
     // ----------------------------------------------------
     // [퀴즈 및 화면 제어 로직]
@@ -626,21 +619,36 @@
         } else if (screenId === 'quiz') {
             topNav.style.display = 'flex';
             gameStats.style.display = 'flex';
-            quoteNavBtn.style.display = 'none'; // 퀴즈 중 명언 버튼 숨김
+            quoteNavBtn.style.display = 'none';
         } else {
             topNav.style.display = 'flex';
             gameStats.style.display = 'none';
             
-            // 정보 입력창(userInfo)에서는 명언 팝업 버튼 숨김
             if (screenId === 'userInfo') {
                 quoteNavBtn.style.display = 'none';
             } else {
-                quoteNavBtn.style.display = 'flex'; // 홈, 리뷰, 랭킹 화면에서는 버튼 노출
+                quoteNavBtn.style.display = 'flex';
             }
         }
     }
 
-    // 트로피 버튼 등에서 명예의 전당으로 이동할 때 구글 시트에서 전체 랭킹을 가져옵니다.
+    // 이름의 글자 수에 맞춰 마스킹 처리하는 함수
+    function maskName(name) {
+        if (!name) return "";
+        let str = String(name).trim(); // 공백 제거 후 문자열로 변환
+        if (str.length === 2) {
+            // 이름이 두 글자인 경우 (예: 김봄 -> 김O)
+            return str + 'O';
+        } else if (str.length === 3) {
+            // 이름이 세 글자인 경우 (예: 김도율 -> 김O율)
+            return str + 'O' + str[1];
+        } else if (str.length > 3) {
+            // 네 글자 이상인 경우
+            return str + 'O'.repeat(str.length - 2) + str[str.length - 1];
+        }
+        return str; // 한 글자일 경우 그대로 반환
+    }
+
     async function goToRanking() {
         showScreen('ranking');
         
@@ -662,22 +670,23 @@
             const data = await response.json();
             
             rankingsDB = [];
-            // data는 [[타임스탬프, 학번, 이름, 학급, 점수, 별, 소요 시간], ...] 형태입니다.
+            // 시트에서 가져온 2차원 배열 데이터 처리
             for (let i = 0; i < data.length; i++) {
                 const row = data[i];
+                if (i === 0) continue; // 헤더 제외
                 
-                // 1행 헤더(제목) 건너뛰기
-                if (i === 0) continue;
-                
-                // 각 데이터 열에 맞는 인덱스 번호를 명확히 지정했습니다. (0부터 시작)
-                if (row.length >= 7) {
+                // 구글 시트에서 응답이 배열이 아닌 문자열로 통째로 올 경우를 대비해 확실히 분리합니다.
+                let rowData = Array.isArray(row) ? row : (typeof row === 'string' ? row.split(',') : []);
+
+                // 각 칸(index)의 데이터를 완벽하게 매칭하여 분리합니다.
+                if (rowData.length >= 7) {
                     rankingsDB.push({
-                        studentId: String(row[1]), // 2번째 칸 (학번)
-                        name: String(row),      // 3번째 칸 (이름)
-                        classNum: String(row),  // 4번째 칸 (학급)
-                        score: Number(row),     // 5번째 칸 (점수)
-                        stars: Number(row),     // 6번째 칸 (별)
-                        time: String(row)       // 7번째 칸 (소요 시간)
+                        studentId: String(rowData[2]), // 두 번째 칸 (학번)
+                        name: String(rowData[1]),      // 세 번째 칸 (이름) - 정확히 이름만 분리!
+                        classNum: String(rowData[3]),  // 네 번째 칸 (학급)
+                        score: Number(rowData[4]),     // 다섯 번째 칸 (점수)
+                        stars: Number(rowData[5]),     // 여섯 번째 칸 (별)
+                        time: String(rowData[6])       // 일곱 번째 칸 (소요 시간)
                     });
                 }
             }
@@ -688,7 +697,6 @@
         }
     }
 
-    // 명예의 전당 화면에 랭킹을 렌더링하는 함수
     function renderRanking() {
         const overallUl = document.getElementById('overallRank');
         const classUl = document.getElementById('classRank');
@@ -707,11 +715,12 @@
 
         let sortedAll = Object.values(highestScoresObj).sort((a, b) => b.score - a.score);
         
-        // 전체 랭킹 렌더링 (원래 이름 그대로 표시)
+        // 전체 랭킹: 마스킹 처리된 이름 적용, 이름 외 다른 데이터 노출 완벽 차단
         sortedAll.forEach((user, index) => {
             let li = document.createElement('li');
             li.className = 'rank-item' + (currentUser && user.studentId === currentUser.studentId ? ' me' : '');
-            li.innerHTML = `<span>${getMedalDisplay(index)}. ${user.name}</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
+            let displayName = maskName(user.name); // 김도율 -> 김O율
+            li.innerHTML = `<span>${getMedalDisplay(index)}. ${displayName}</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
             overallUl.appendChild(li);
         });
 
@@ -731,6 +740,7 @@
             classNum: cls, avg: Math.round(classScores[cls] / classCounts[cls])
         })).sort((a, b) => b.avg - a.avg);
 
+        // 학급별 랭킹
         classAverages.forEach((clsData, index) => {
             let li = document.createElement('li');
             li.className = 'rank-item' + (currentUser && clsData.classNum === currentUser.classNum ? ' me' : '');
@@ -740,13 +750,14 @@
         
         if(classAverages.length === 0) classUl.innerHTML = `<li class="rank-item" style="justify-content:center; color:#888;">아직 데이터가 없습니다.</li>`;
 
-        // 우리 학급 내 랭킹 렌더링 (원래 이름 그대로 표시)
+        // 학급 내 랭킹: 마스킹 처리된 이름 적용
         if (currentUser && currentUser.classNum !== "T") {
             let myClassUsers = sortedAll.filter(user => user.classNum === currentUser.classNum).sort((a, b) => b.score - a.score);
             myClassUsers.forEach((user, index) => {
                 let li = document.createElement('li');
                 li.className = 'rank-item' + (user.studentId === currentUser.studentId ? ' me' : '');
-                li.innerHTML = `<span>${getMedalDisplay(index)}. ${user.name}</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
+                let displayName = maskName(user.name); // 김도율 -> 김O율
+                li.innerHTML = `<span>${getMedalDisplay(index)}. ${displayName}</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
                 myClassUl.appendChild(li);
             });
         } else {
@@ -786,7 +797,6 @@
             alert("올바른 학번(예: 30102)과 이름을 입력해주세요.");
             return;
         }
-
         currentUser = { studentId: sid, name: sname, score: 0, stars: 0, classNum: sid.substring(0, 3) };
         initQuiz();
     }
@@ -939,7 +949,6 @@
         if (currentQuestionIndex < activeQuizData.length) {
             setTimeout(loadQuestion, 100); 
         } else {
-            // 하트가 남은 상태로 끝까지 완료 시
             setTimeout(endQuiz, 1500);
         }
     }
@@ -956,13 +965,10 @@
             time: user.time
         };
 
-        // no-cors 모드를 사용하여 깃허브에서 직접 POST 할 때 발생하는 CORS 오류 방지
         fetch(scriptUrl, {
             method: 'POST',
             mode: 'no-cors',
-            headers: {
-                'Content-Type': 'text/plain;charset=utf-8',
-            },
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
         }).catch(err => console.error('전송 실패:', err));
     }
@@ -980,7 +986,6 @@
             currentUser.time = timeString;
             
             if(currentUser.classNum !== "T") {
-                // 구글 시트로 POST 전송
                 sendToGoogleSheet(currentUser);
             }
         }
@@ -1011,7 +1016,7 @@
     function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
     }
-    
+
     window.onclick = function(event) {
         const expModal = document.getElementById('explanationModal');
         const quoteModal = document.getElementById('quoteModal');
@@ -1024,73 +1029,6 @@
         if (index === 1) return '<span class="medal">🥈</span> 2위';
         if (index === 2) return '<span class="medal">🥉</span> 3위';
         return `${index + 1}위`;
-    }
-
-    function renderRanking() {
-        const overallUl = document.getElementById('overallRank');
-        const classUl = document.getElementById('classRank');
-        const myClassUl = document.getElementById('myClassRank');
-        
-        overallUl.innerHTML = '';
-        classUl.innerHTML = '';
-        myClassUl.innerHTML = '';
-
-        let highestScoresObj = {};
-        rankingsDB.filter(u => u.classNum !== "T").forEach(user => {
-            if (!highestScoresObj[user.studentId] || highestScoresObj[user.studentId].score < user.score) {
-                highestScoresObj[user.studentId] = user;
-            }
-        });
-
-        let sortedAll = Object.values(highestScoresObj).sort((a, b) => b.score - a.score);
-        
-        // 전체 랭킹 렌더링 (학번 숨김 및 이름 마스킹 처리 노출)
-        sortedAll.forEach((user, index) => {
-            let li = document.createElement('li');
-            li.className = 'rank-item' + (currentUser && user.studentId === currentUser.studentId ? ' me' : '');
-            let displayName = maskName(user.name); // 화면 표시용 마스킹 이름
-            li.innerHTML = `<span>${getMedalDisplay(index)}. ${displayName}</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
-            overallUl.appendChild(li);
-        });
-
-        if(sortedAll.length === 0) overallUl.innerHTML = `<li class="rank-item" style="justify-content:center; color:#888;">아직 참여자가 없습니다.</li>`;
-
-        let classScores = {};
-        let classCounts = {};
-        sortedAll.forEach(user => {
-            if(!classScores[user.classNum]) {
-                classScores[user.classNum] = 0; classCounts[user.classNum] = 0;
-            }
-            classScores[user.classNum] += user.score;
-            classCounts[user.classNum]++;
-        });
-
-        let classAverages = Object.keys(classScores).map(cls => ({
-            classNum: cls, avg: Math.round(classScores[cls] / classCounts[cls])
-        })).sort((a, b) => b.avg - a.avg);
-
-        classAverages.forEach((clsData, index) => {
-            let li = document.createElement('li');
-            li.className = 'rank-item' + (currentUser && clsData.classNum === currentUser.classNum ? ' me' : '');
-            li.innerHTML = `<span>${getMedalDisplay(index)}. ${clsData.classNum}반</span> <span>평균 ${clsData.avg}점</span>`;
-            classUl.appendChild(li);
-        });
-        
-        if(classAverages.length === 0) classUl.innerHTML = `<li class="rank-item" style="justify-content:center; color:#888;">아직 데이터가 없습니다.</li>`;
-
-        // 우리 학급 내 랭킹 렌더링 (학번 숨김 및 이름 마스킹 처리 노출)
-        if (currentUser && currentUser.classNum !== "T") {
-            let myClassUsers = sortedAll.filter(user => user.classNum === currentUser.classNum).sort((a, b) => b.score - a.score);
-            myClassUsers.forEach((user, index) => {
-                let li = document.createElement('li');
-                li.className = 'rank-item' + (user.studentId === currentUser.studentId ? ' me' : '');
-                let displayName = maskName(user.name); // 화면 표시용 마스킹 이름
-                li.innerHTML = `<span>${getMedalDisplay(index)}. ${displayName}</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
-                myClassUl.appendChild(li);
-            });
-        } else {
-            myClassUl.innerHTML = `<li class="rank-item" style="justify-content:center; color:#888;">퀴즈를 진행한 본인 학급만 표시됩니다.</li>`;
-        }
     }
 </script>
 </body>
