@@ -311,7 +311,7 @@
 
 <script>
     // 선생님, 아래 부분에 위에서 만든 앱스 스크립트 '웹 앱 URL'을 넣어주세요!
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycby3-yCsqzPAjZEQz6MOyM-OMh73CUI7ZyiQFU2ypIzKOXxZj8Wdqj6kF4oyEu4_w4aWLQ/exec'; 
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbywkNu59qtgKNBgaQqUdPDKyKJXKr-Dts4xgXup1k9ljgjICDIyTCR_WHOc26maQXvoXw/exec'; 
 
     // ----------------------------------------------------
     // [명언 데이터베이스 - 제공된 187개 풀버전 (전체 포함)]
@@ -632,7 +632,7 @@
         }
     }
 
-    // 이름의 글자 수에 맞춰 마스킹 처리하는 함수
+    // 이름의 글자 수에 맞춰 마스킹 처리하는 함수 (이번엔 완벽합니다)
     function maskName(name) {
         if (!name) return "";
         let str = String(name).trim(); // 공백 제거 후 문자열로 변환
@@ -641,9 +641,9 @@
             return str + 'O';
         } else if (str.length === 3) {
             // 이름이 세 글자인 경우 (예: 김도율 -> 김O율)
-            return str + 'O' + str[1];
+            return str + 'O' + str[3];
         } else if (str.length > 3) {
-            // 네 글자 이상인 경우
+            // 네 글자 이상인 경우 (첫 글자와 끝 글자만 남김)
             return str + 'O'.repeat(str.length - 2) + str[str.length - 1];
         }
         return str; // 한 글자일 경우 그대로 반환
@@ -678,15 +678,15 @@
                 // 구글 시트에서 응답이 배열이 아닌 문자열로 통째로 올 경우를 대비해 확실히 분리합니다.
                 let rowData = Array.isArray(row) ? row : (typeof row === 'string' ? row.split(',') : []);
 
-                // 각 칸(index)의 데이터를 완벽하게 매칭하여 분리합니다.
+                // ★ 오류 수정: 이름 칸(인덱스 2번)과 학번 칸(인덱스 1번)을 정확히 지정했습니다. ★
                 if (rowData.length >= 7) {
                     rankingsDB.push({
-                        studentId: String(rowData[2]), // 두 번째 칸 (학번)
-                        name: String(rowData[1]),      // 세 번째 칸 (이름) - 정확히 이름만 분리!
-                        classNum: String(rowData[3]),  // 네 번째 칸 (학급)
-                        score: Number(rowData[4]),     // 다섯 번째 칸 (점수)
-                        stars: Number(rowData[5]),     // 여섯 번째 칸 (별)
-                        time: String(rowData[6])       // 일곱 번째 칸 (소요 시간)
+                        studentId: String(rowData[4]), // [수정] 1번 인덱스가 학번
+                        name: String(rowData[3]),      // [수정] 2번 인덱스가 이름 (정확히 분리됨!)
+                        classNum: String(rowData[5]),  // [수정] 3번 인덱스가 학급
+                        score: Number(rowData[6]),     // [수정] 4번 인덱스가 점수
+                        stars: Number(rowData[2]),     // [수정] 5번 인덱스가 별
+                        time: String(rowData[7])       // [수정] 6번 인덱스가 소요 시간
                     });
                 }
             }
@@ -715,11 +715,11 @@
 
         let sortedAll = Object.values(highestScoresObj).sort((a, b) => b.score - a.score);
         
-        // 전체 랭킹: 마스킹 처리된 이름 적용, 이름 외 다른 데이터 노출 완벽 차단
+        // 전체 랭킹: 마스킹 처리된 이름만 적용, 다른 데이터 노출 완벽 차단!
         sortedAll.forEach((user, index) => {
             let li = document.createElement('li');
             li.className = 'rank-item' + (currentUser && user.studentId === currentUser.studentId ? ' me' : '');
-            let displayName = maskName(user.name); // 김도율 -> 김O율
+            let displayName = maskName(user.name); // 정확히 잘라낸 이름만 마스킹 처리
             li.innerHTML = `<span>${getMedalDisplay(index)}. ${displayName}</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
             overallUl.appendChild(li);
         });
@@ -750,13 +750,13 @@
         
         if(classAverages.length === 0) classUl.innerHTML = `<li class="rank-item" style="justify-content:center; color:#888;">아직 데이터가 없습니다.</li>`;
 
-        // 학급 내 랭킹: 마스킹 처리된 이름 적용
+        // 학급 내 랭킹: 마스킹 처리된 이름만 적용
         if (currentUser && currentUser.classNum !== "T") {
             let myClassUsers = sortedAll.filter(user => user.classNum === currentUser.classNum).sort((a, b) => b.score - a.score);
             myClassUsers.forEach((user, index) => {
                 let li = document.createElement('li');
                 li.className = 'rank-item' + (user.studentId === currentUser.studentId ? ' me' : '');
-                let displayName = maskName(user.name); // 김도율 -> 김O율
+                let displayName = maskName(user.name); 
                 li.innerHTML = `<span>${getMedalDisplay(index)}. ${displayName}</span> <span style="text-align:right;">${user.score}점<br><span style="font-size:12px; color:#f1c40f;">⭐ ${user.stars}개</span></span>`;
                 myClassUl.appendChild(li);
             });
