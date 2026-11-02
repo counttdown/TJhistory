@@ -666,17 +666,17 @@
             for (let i = 0; i < data.length; i++) {
                 const row = data[i];
                 // 1행 헤더(제목) 건너뛰기
-                if (i === 0 && (row[1] === '학번' || isNaN(Number(row)))) continue;
+                if (i === 0) continue; 
                 
-                // 각 열(칸)의 데이터를 정확한 변수에 연결하도록 수정 [row~row]
+                // 각 데이터 열에 맞는 인덱스 번호를 정확히 할당 (이 부분이 수정되었습니다)
                 if (row.length >= 7) {
                     rankingsDB.push({
-                        studentId: String(row[1]), // 학번
-                        name: String(row),      // 이름
-                        classNum: String(row),  // 학급
-                        score: Number(row),     // 점수
-                        stars: Number(row),     // 별
-                        time: String(row)       // 소요 시간
+                        studentId: String(row[1]), // 두 번째 칸 (학번)
+                        name: String(row),      // 세 번째 칸 (이름 - ex. 홍길동)
+                        classNum: String(row),  // 네 번째 칸 (학급)
+                        score: Number(row),     // 다섯 번째 칸 (점수)
+                        stars: Number(row),     // 여섯 번째 칸 (별)
+                        time: String(row)       // 일곱 번째 칸 (소요 시간)
                     });
                 }
             }
