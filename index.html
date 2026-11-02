@@ -665,18 +665,19 @@
             // data는 [[타임스탬프, 학번, 이름, 학급, 점수, 별, 소요 시간], ...] 형태입니다.
             for (let i = 0; i < data.length; i++) {
                 const row = data[i];
-                // 1행 헤더(제목) 건너뛰기
-                if (i === 0) continue; 
                 
-                // [오류 수정 완료] 각 데이터 열에 맞는 인덱스 번호를 정확히 할당했습니다.
+                // 1행이 헤더(제목)인 경우 건너뛰기
+                if (i === 0 && (row === '타임스탬프' || row[1] === '학번')) continue;
+                
+                // 데이터 길이가 충분한지 확인 후, 정확한 열(Index) 번호 지정
                 if (row.length >= 7) {
                     rankingsDB.push({
-                        studentId: String(row[1]), // 두 번째 칸 (학번)
-                        name: String(row),      // 세 번째 칸 (이름 - ex. 홍길동)
-                        classNum: String(row),  // 네 번째 칸 (학급)
-                        score: Number(row),     // 다섯 번째 칸 (점수)
-                        stars: Number(row),     // 여섯 번째 칸 (별)
-                        time: String(row)       // 일곱 번째 칸 (소요 시간)
+                        studentId: String(row[1]), // 2번째 칸 (학번)
+                        name: String(row),      // 3번째 칸 (이름) - 드디어 홍길동 3글자만 정상적으로 가져옵니다!
+                        classNum: String(row),  // 4번째 칸 (학급)
+                        score: Number(row),     // 5번째 칸 (점수)
+                        stars: Number(row),     // 6번째 칸 (별)
+                        time: String(row)       // 7번째 칸 (소요 시간)
                     });
                 }
             }
